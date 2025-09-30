@@ -22,6 +22,7 @@ const navigation = [
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Transactions', href: '/admin/transactions', icon: TrendingUp },
   { name: 'Security', href: '/admin/security', icon: Shield },
+  { name: 'Admin Management', href: '/admin/manage-admins', icon: Users },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 

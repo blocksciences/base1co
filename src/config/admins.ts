@@ -10,6 +10,25 @@ export const ADMIN_ADDRESSES = [
   // Add more admin addresses as needed
 ];
 
+const STORAGE_KEY = 'launchbase_admins';
+
+/**
+ * Get all admin addresses (from localStorage if available, fallback to constants)
+ */
+const getAllAdmins = (): string[] => {
+  if (typeof window === 'undefined') return ADMIN_ADDRESSES;
+  
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch (e) {
+      return ADMIN_ADDRESSES;
+    }
+  }
+  return ADMIN_ADDRESSES;
+};
+
 /**
  * Check if a wallet address has admin privileges
  * @param address - Wallet address to check
@@ -17,5 +36,6 @@ export const ADMIN_ADDRESSES = [
  */
 export const isAdmin = (address: string | undefined): boolean => {
   if (!address) return false;
-  return ADMIN_ADDRESSES.includes(address.toLowerCase());
+  const admins = getAllAdmins();
+  return admins.includes(address.toLowerCase());
 };

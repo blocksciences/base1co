@@ -21,6 +21,7 @@ import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminTransactions from "./pages/admin/AdminTransactions";
 import AdminSecurity from "./pages/admin/AdminSecurity";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminManagement from "./pages/admin/AdminManagement";
 import NotFound from "./pages/NotFound";
 import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
 
@@ -56,6 +57,7 @@ const App = () => (
               <Route path="/admin/analytics" element={<AdminProtectedRoute><AdminAnalytics /></AdminProtectedRoute>} />
               <Route path="/admin/transactions" element={<AdminProtectedRoute><AdminTransactions /></AdminProtectedRoute>} />
               <Route path="/admin/security" element={<AdminProtectedRoute><AdminSecurity /></AdminProtectedRoute>} />
+              <Route path="/admin/manage-admins" element={<AdminProtectedRoute><AdminManagement /></AdminProtectedRoute>} />
               <Route path="/admin/settings" element={<AdminProtectedRoute><AdminSettings /></AdminProtectedRoute>} />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
