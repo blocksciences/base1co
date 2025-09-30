@@ -2,9 +2,12 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Link, useLocation } from 'react-router-dom';
 import { Rocket, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAccount } from 'wagmi';
+import { isAdmin } from '@/config/admins';
 
 export const Header = () => {
   const location = useLocation();
+  const { address } = useAccount();
   
   const isActive = (path: string) => location.pathname === path;
   
@@ -51,12 +54,14 @@ export const Header = () => {
         </div>
         
         <div className="flex items-center gap-4">
-          <Link to="/admin">
-            <Button variant="ghost" size="sm" className="gap-2">
-              <Shield className="h-4 w-4" />
-              Admin
-            </Button>
-          </Link>
+          {isAdmin(address) && (
+            <Link to="/admin">
+              <Button variant="ghost" size="sm" className="gap-2">
+                <Shield className="h-4 w-4" />
+                Admin
+              </Button>
+            </Link>
+          )}
           <ConnectButton
             chainStatus="icon"
             showBalance={false}

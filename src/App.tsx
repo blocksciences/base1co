@@ -22,6 +22,7 @@ import AdminTransactions from "./pages/admin/AdminTransactions";
 import AdminSecurity from "./pages/admin/AdminSecurity";
 import AdminSettings from "./pages/admin/AdminSettings";
 import NotFound from "./pages/NotFound";
+import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -46,16 +47,16 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/staking" element={<Staking />} />
               
-              {/* Admin Routes */}
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/projects" element={<AdminProjects />} />
-              <Route path="/admin/create-ico" element={<CreateICO />} />
-              <Route path="/admin/users" element={<AdminUsers />} />
-              <Route path="/admin/kyc" element={<KYCApprovals />} />
-              <Route path="/admin/analytics" element={<AdminAnalytics />} />
-              <Route path="/admin/transactions" element={<AdminTransactions />} />
-              <Route path="/admin/security" element={<AdminSecurity />} />
-              <Route path="/admin/settings" element={<AdminSettings />} />
+              {/* Admin Routes - Protected */}
+              <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
+              <Route path="/admin/projects" element={<AdminProtectedRoute><AdminProjects /></AdminProtectedRoute>} />
+              <Route path="/admin/create-ico" element={<AdminProtectedRoute><CreateICO /></AdminProtectedRoute>} />
+              <Route path="/admin/users" element={<AdminProtectedRoute><AdminUsers /></AdminProtectedRoute>} />
+              <Route path="/admin/kyc" element={<AdminProtectedRoute><KYCApprovals /></AdminProtectedRoute>} />
+              <Route path="/admin/analytics" element={<AdminProtectedRoute><AdminAnalytics /></AdminProtectedRoute>} />
+              <Route path="/admin/transactions" element={<AdminProtectedRoute><AdminTransactions /></AdminProtectedRoute>} />
+              <Route path="/admin/security" element={<AdminProtectedRoute><AdminSecurity /></AdminProtectedRoute>} />
+              <Route path="/admin/settings" element={<AdminProtectedRoute><AdminSettings /></AdminProtectedRoute>} />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
