@@ -13,9 +13,10 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
+    // Create client for auth verification (with user's JWT)
+    const authClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
         global: {
           headers: { Authorization: req.headers.get('Authorization')! },
@@ -27,7 +28,7 @@ serve(async (req) => {
     const {
       data: { user },
       error: userError,
-    } = await supabaseClient.auth.getUser();
+    } = await authClient.auth.getUser();
 
     if (userError || !user) {
       console.error('Auth error:', userError);
@@ -41,7 +42,7 @@ serve(async (req) => {
     }
 
     // Check if user is admin
-    const { data: isAdminData, error: adminError } = await supabaseClient
+    const { data: isAdminData, error: adminError } = await authClient
       .rpc('is_admin', { check_user_id: user.id });
 
     if (adminError || !isAdminData) {
@@ -54,6 +55,12 @@ serve(async (req) => {
         }
       );
     }
+
+    // Create admin client for privileged operations (with service role key)
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
     const { operation, targetUserId, targetEmail, targetWallet, role } = await req.json();
 
