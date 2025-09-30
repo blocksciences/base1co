@@ -68,6 +68,296 @@ export type Database = {
         }
         Relationships: []
       }
+      kyc_submissions: {
+        Row: {
+          country: string
+          created_at: string | null
+          document_number: string
+          document_type: string
+          email: string
+          full_name: string
+          id: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          risk_level: string | null
+          selfie_verified: boolean | null
+          status: string
+          submitted_at: string | null
+          updated_at: string | null
+          wallet_address: string
+        }
+        Insert: {
+          country: string
+          created_at?: string | null
+          document_number: string
+          document_type: string
+          email: string
+          full_name: string
+          id?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          risk_level?: string | null
+          selfie_verified?: boolean | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string | null
+          wallet_address: string
+        }
+        Update: {
+          country?: string
+          created_at?: string | null
+          document_number?: string
+          document_type?: string
+          email?: string
+          full_name?: string
+          id?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          risk_level?: string | null
+          selfie_verified?: boolean | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string | null
+          wallet_address?: string
+        }
+        Relationships: []
+      }
+      platform_activities: {
+        Row: {
+          action_text: string
+          activity_type: string
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          status: string
+          user_address: string | null
+        }
+        Insert: {
+          action_text: string
+          activity_type: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          status: string
+          user_address?: string | null
+        }
+        Update: {
+          action_text?: string
+          activity_type?: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+          user_address?: string | null
+        }
+        Relationships: []
+      }
+      platform_analytics: {
+        Row: {
+          active_projects: number | null
+          active_users_today: number | null
+          created_at: string | null
+          id: string
+          investments_30d: number | null
+          kyc_completed_30d: number | null
+          metric_date: string
+          new_users_30d: number | null
+          pending_kyc: number | null
+          platform_revenue_usd: number | null
+          total_raised_usd: number | null
+          total_transactions_24h: number | null
+          total_users: number | null
+          total_volume_24h_usd: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          active_projects?: number | null
+          active_users_today?: number | null
+          created_at?: string | null
+          id?: string
+          investments_30d?: number | null
+          kyc_completed_30d?: number | null
+          metric_date: string
+          new_users_30d?: number | null
+          pending_kyc?: number | null
+          platform_revenue_usd?: number | null
+          total_raised_usd?: number | null
+          total_transactions_24h?: number | null
+          total_users?: number | null
+          total_volume_24h_usd?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          active_projects?: number | null
+          active_users_today?: number | null
+          created_at?: string | null
+          id?: string
+          investments_30d?: number | null
+          kyc_completed_30d?: number | null
+          metric_date?: string
+          new_users_30d?: number | null
+          pending_kyc?: number | null
+          platform_revenue_usd?: number | null
+          total_raised_usd?: number | null
+          total_transactions_24h?: number | null
+          total_users?: number | null
+          total_volume_24h_usd?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          banned: boolean | null
+          created_at: string | null
+          email: string | null
+          id: string
+          joined_at: string | null
+          kyc_status: string
+          last_active_at: string | null
+          projects_count: number | null
+          total_invested_eth: number | null
+          total_invested_usd: number | null
+          updated_at: string | null
+          wallet_address: string
+        }
+        Insert: {
+          banned?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          joined_at?: string | null
+          kyc_status?: string
+          last_active_at?: string | null
+          projects_count?: number | null
+          total_invested_eth?: number | null
+          total_invested_usd?: number | null
+          updated_at?: string | null
+          wallet_address: string
+        }
+        Update: {
+          banned?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          joined_at?: string | null
+          kyc_status?: string
+          last_active_at?: string | null
+          projects_count?: number | null
+          total_invested_eth?: number | null
+          total_invested_usd?: number | null
+          updated_at?: string | null
+          wallet_address?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          contract_address: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          end_date: string
+          goal_amount: number
+          id: string
+          name: string
+          participants_count: number | null
+          progress_percentage: number | null
+          raised_amount: number | null
+          start_date: string
+          status: string
+          symbol: string
+          updated_at: string | null
+        }
+        Insert: {
+          contract_address?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date: string
+          goal_amount: number
+          id?: string
+          name: string
+          participants_count?: number | null
+          progress_percentage?: number | null
+          raised_amount?: number | null
+          start_date: string
+          status?: string
+          symbol: string
+          updated_at?: string | null
+        }
+        Update: {
+          contract_address?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date?: string
+          goal_amount?: number
+          id?: string
+          name?: string
+          participants_count?: number | null
+          progress_percentage?: number | null
+          raised_amount?: number | null
+          start_date?: string
+          status?: string
+          symbol?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount_crypto: string
+          amount_usd: number | null
+          created_at: string | null
+          from_address: string
+          id: string
+          project_id: string | null
+          project_name: string | null
+          status: string
+          timestamp: string | null
+          transaction_type: string
+          tx_hash: string
+        }
+        Insert: {
+          amount_crypto: string
+          amount_usd?: number | null
+          created_at?: string | null
+          from_address: string
+          id?: string
+          project_id?: string | null
+          project_name?: string | null
+          status?: string
+          timestamp?: string | null
+          transaction_type: string
+          tx_hash: string
+        }
+        Update: {
+          amount_crypto?: string
+          amount_usd?: number | null
+          created_at?: string | null
+          from_address?: string
+          id?: string
+          project_id?: string | null
+          project_name?: string | null
+          status?: string
+          timestamp?: string | null
+          transaction_type?: string
+          tx_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
