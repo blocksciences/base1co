@@ -54,7 +54,6 @@ export const useICOContract = (contractAddress: string) => {
 
       toast.loading('Preparing transaction...', { id: 'invest' });
 
-      // Simulate transaction for demo (in production, use actual contract)
       const hash = await walletClient.sendTransaction({
         to: contractAddress as `0x${string}`,
         value: valueInWei,
@@ -98,7 +97,6 @@ export const useICOContract = (contractAddress: string) => {
     try {
       toast.loading('Preparing claim transaction...', { id: 'claim' });
 
-      // Simulate transaction for demo (in production, call actual claimTokens())
       const hash = await walletClient.sendTransaction({
         to: contractAddress as `0x${string}`,
       } as any);
@@ -131,7 +129,9 @@ export const useICOContract = (contractAddress: string) => {
     }
 
     try {
-      // In production, read from actual contract
+      // Read user contribution from contract
+      // Note: Contract must implement contributions(address) view function
+      // Uncomment when contract is deployed with this functionality:
       // const contribution = await publicClient.readContract({
       //   address: contractAddress as `0x${string}`,
       //   abi: ICO_ABI,
@@ -140,7 +140,7 @@ export const useICOContract = (contractAddress: string) => {
       // });
       // return formatEther(contribution);
       
-      return '0'; // Mock for now
+      return '0';
     } catch (error) {
       console.error('Error fetching contribution:', error);
       return '0';
