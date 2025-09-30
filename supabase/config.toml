@@ -2,3 +2,12 @@ project_id = "oltlkbykrxikrflqxxla"
 
 [functions.deploy-ico-contracts]
 verify_jwt = true
+
+[functions.check-eligibility]
+verify_jwt = false
+
+[functions.export-sale-report]
+verify_jwt = false
+
+[functions.admin-operations]
+verify_jwt = true

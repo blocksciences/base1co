@@ -1,6 +1,6 @@
 import { Header } from '@/components/Header';
 import { useProject } from '@/hooks/useProjects';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { 
   Clock, Users, Target, TrendingUp, Shield, 
   ExternalLink, Twitter, Globe, FileText,
-  Loader2, CheckCircle2, AlertCircle
+  Loader2, CheckCircle2, AlertCircle, Lock
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAccount } from 'wagmi';

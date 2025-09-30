@@ -6,18 +6,24 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 
+interface IKYCRegistry {
+    function isEligible(address user) external view returns (bool);
+}
+
 /**
  * @title ICOSale
- * @dev ICO contract for token sales with configurable parameters
+ * @dev ICO contract for token sales with configurable parameters and KYC integration
  */
 contract ICOSale is Ownable, ReentrancyGuard, Pausable {
     IERC20 public token;
+    IKYCRegistry public kycRegistry;
     
     uint256 public tokenPrice; // Price in wei per token (considering decimals)
     uint256 public softCap;
     uint256 public hardCap;
     uint256 public minContribution;
     uint256 public maxContribution;
+    uint256 public maxPerWallet; // Maximum per wallet limit
     uint256 public startTime;
     uint256 public endTime;
     uint256 public fundsRaised;
@@ -35,25 +41,31 @@ contract ICOSale is Ownable, ReentrancyGuard, Pausable {
     
     constructor(
         address _token,
+        address _kycRegistry,
         uint256 _tokenPrice,
         uint256 _softCap,
         uint256 _hardCap,
         uint256 _minContribution,
         uint256 _maxContribution,
+        uint256 _maxPerWallet,
         uint256 _startTime,
         uint256 _endTime
     ) Ownable(msg.sender) {
         require(_token != address(0), "Invalid token address");
+        require(_kycRegistry != address(0), "Invalid KYC registry");
         require(_softCap < _hardCap, "Soft cap must be less than hard cap");
         require(_startTime < _endTime, "Start time must be before end time");
         require(_startTime >= block.timestamp, "Start time must be in the future");
+        require(_maxPerWallet > 0, "Max per wallet must be > 0");
         
         token = IERC20(_token);
+        kycRegistry = IKYCRegistry(_kycRegistry);
         tokenPrice = _tokenPrice;
         softCap = _softCap;
         hardCap = _hardCap;
         minContribution = _minContribution;
         maxContribution = _maxContribution;
+        maxPerWallet = _maxPerWallet;
         startTime = _startTime;
         endTime = _endTime;
     }
@@ -67,8 +79,10 @@ contract ICOSale is Ownable, ReentrancyGuard, Pausable {
     }
     
     function buyTokens() external payable nonReentrant whenNotPaused saleActive {
+        require(kycRegistry.isEligible(msg.sender), "Not KYC approved");
         require(msg.value >= minContribution, "Below minimum contribution");
         require(contributions[msg.sender] + msg.value <= maxContribution, "Exceeds maximum contribution");
+        require(contributions[msg.sender] + msg.value <= maxPerWallet, "Exceeds wallet limit");
         
         uint256 availableForSale = hardCap - fundsRaised;
         uint256 contribution = msg.value > availableForSale ? availableForSale : msg.value;

@@ -25,6 +25,9 @@ import AdminTransactions from "./pages/admin/AdminTransactions";
 import AdminSecurity from "./pages/admin/AdminSecurity";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminManagement from "./pages/admin/AdminManagement";
+import VestingDashboard from "./pages/admin/VestingDashboard";
+import LiquidityLocks from "./pages/admin/LiquidityLocks";
+import ProjectTransparency from "./pages/ProjectTransparency";
 import NotFound from "./pages/NotFound";
 import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
 
@@ -49,6 +52,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/project/:id" element={<ProjectDetail />} />
+            <Route path="/project/:id/transparency" element={<ProjectTransparency />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/staking" element={<Staking />} />
             <Route path="/launch" element={<LaunchICO />} />
@@ -63,6 +67,8 @@ const App = () => (
               <Route path="/admin/analytics" element={<AdminProtectedRoute><AdminAnalytics /></AdminProtectedRoute>} />
               <Route path="/admin/transactions" element={<AdminProtectedRoute><AdminTransactions /></AdminProtectedRoute>} />
               <Route path="/admin/security" element={<AdminProtectedRoute><AdminSecurity /></AdminProtectedRoute>} />
+              <Route path="/admin/vesting" element={<AdminProtectedRoute><VestingDashboard /></AdminProtectedRoute>} />
+              <Route path="/admin/liquidity-locks" element={<AdminProtectedRoute><LiquidityLocks /></AdminProtectedRoute>} />
               <Route path="/admin/manage-admins" element={<AdminProtectedRoute><AdminManagement /></AdminProtectedRoute>} />
               <Route path="/admin/settings" element={<AdminProtectedRoute><AdminSettings /></AdminProtectedRoute>} />
               

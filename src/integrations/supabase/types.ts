@@ -68,6 +68,42 @@ export type Database = {
         }
         Relationships: []
       }
+      eligibility_checks: {
+        Row: {
+          country_code: string | null
+          created_at: string | null
+          geo_blocked: boolean | null
+          id: string
+          ip_address: string | null
+          kyc_approved: boolean | null
+          last_checked_at: string | null
+          sanctions_check: boolean | null
+          wallet_address: string
+        }
+        Insert: {
+          country_code?: string | null
+          created_at?: string | null
+          geo_blocked?: boolean | null
+          id?: string
+          ip_address?: string | null
+          kyc_approved?: boolean | null
+          last_checked_at?: string | null
+          sanctions_check?: boolean | null
+          wallet_address: string
+        }
+        Update: {
+          country_code?: string | null
+          created_at?: string | null
+          geo_blocked?: boolean | null
+          id?: string
+          ip_address?: string | null
+          kyc_approved?: boolean | null
+          last_checked_at?: string | null
+          sanctions_check?: boolean | null
+          wallet_address?: string
+        }
+        Relationships: []
+      }
       kyc_submissions: {
         Row: {
           country: string
@@ -124,6 +160,59 @@ export type Database = {
           wallet_address?: string
         }
         Relationships: []
+      }
+      liquidity_locks: {
+        Row: {
+          amount: number
+          beneficiary_address: string
+          contract_address: string
+          created_at: string | null
+          description: string | null
+          id: string
+          lock_id: number
+          project_id: string | null
+          token_address: string
+          unlock_time: string
+          updated_at: string | null
+          withdrawn: boolean | null
+        }
+        Insert: {
+          amount: number
+          beneficiary_address: string
+          contract_address: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          lock_id: number
+          project_id?: string | null
+          token_address: string
+          unlock_time: string
+          updated_at?: string | null
+          withdrawn?: boolean | null
+        }
+        Update: {
+          amount?: number
+          beneficiary_address?: string
+          contract_address?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          lock_id?: number
+          project_id?: string | null
+          token_address?: string
+          unlock_time?: string
+          updated_at?: string | null
+          withdrawn?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "liquidity_locks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       platform_activities: {
         Row: {
@@ -344,6 +433,10 @@ export type Database = {
           end_date: string
           goal_amount: number
           id: string
+          is_paused: boolean | null
+          kyc_registry_address: string | null
+          liquidity_locker_address: string | null
+          max_per_wallet: number | null
           name: string
           participants_count: number | null
           progress_percentage: number | null
@@ -352,6 +445,7 @@ export type Database = {
           status: string
           symbol: string
           updated_at: string | null
+          vesting_vault_address: string | null
         }
         Insert: {
           contract_address?: string | null
@@ -361,6 +455,10 @@ export type Database = {
           end_date: string
           goal_amount: number
           id?: string
+          is_paused?: boolean | null
+          kyc_registry_address?: string | null
+          liquidity_locker_address?: string | null
+          max_per_wallet?: number | null
           name: string
           participants_count?: number | null
           progress_percentage?: number | null
@@ -369,6 +467,7 @@ export type Database = {
           status?: string
           symbol: string
           updated_at?: string | null
+          vesting_vault_address?: string | null
         }
         Update: {
           contract_address?: string | null
@@ -378,6 +477,10 @@ export type Database = {
           end_date?: string
           goal_amount?: number
           id?: string
+          is_paused?: boolean | null
+          kyc_registry_address?: string | null
+          liquidity_locker_address?: string | null
+          max_per_wallet?: number | null
           name?: string
           participants_count?: number | null
           progress_percentage?: number | null
@@ -386,8 +489,60 @@ export type Database = {
           status?: string
           symbol?: string
           updated_at?: string | null
+          vesting_vault_address?: string | null
         }
         Relationships: []
+      }
+      purchase_receipts: {
+        Row: {
+          amount_eth: number
+          amount_tokens: number
+          created_at: string | null
+          id: string
+          project_id: string | null
+          receipt_data: Json | null
+          token_price: number
+          transaction_id: string | null
+          wallet_address: string
+        }
+        Insert: {
+          amount_eth: number
+          amount_tokens: number
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+          receipt_data?: Json | null
+          token_price: number
+          transaction_id?: string | null
+          wallet_address: string
+        }
+        Update: {
+          amount_eth?: number
+          amount_tokens?: number
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+          receipt_data?: Json | null
+          token_price?: number
+          transaction_id?: string | null
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_receipts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_receipts_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transactions: {
         Row: {
@@ -515,6 +670,65 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vesting_schedules: {
+        Row: {
+          beneficiary_address: string
+          cliff_duration: number
+          contract_address: string
+          created_at: string | null
+          id: string
+          project_id: string | null
+          released_amount: number | null
+          revocable: boolean | null
+          revoked: boolean | null
+          schedule_type: string
+          start_time: string
+          total_amount: number
+          updated_at: string | null
+          vesting_duration: number
+        }
+        Insert: {
+          beneficiary_address: string
+          cliff_duration: number
+          contract_address: string
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+          released_amount?: number | null
+          revocable?: boolean | null
+          revoked?: boolean | null
+          schedule_type: string
+          start_time: string
+          total_amount: number
+          updated_at?: string | null
+          vesting_duration: number
+        }
+        Update: {
+          beneficiary_address?: string
+          cliff_duration?: number
+          contract_address?: string
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+          released_amount?: number | null
+          revocable?: boolean | null
+          revoked?: boolean | null
+          schedule_type?: string
+          start_time?: string
+          total_amount?: number
+          updated_at?: string | null
+          vesting_duration?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vesting_schedules_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
