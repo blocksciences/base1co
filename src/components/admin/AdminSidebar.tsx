@@ -9,7 +9,8 @@ import {
   FileText,
   Shield,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  ClipboardList
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -17,6 +18,7 @@ const navigation = [
   { name: 'Overview', href: '/admin', icon: LayoutDashboard },
   { name: 'Projects', href: '/admin/projects', icon: Rocket },
   { name: 'Create ICO', href: '/admin/create-ico', icon: FileText },
+  { name: 'Applications', href: '/admin/applications', icon: ClipboardList },
   { name: 'Users', href: '/admin/users', icon: Users },
   { name: 'KYC Approvals', href: '/admin/kyc', icon: CheckCircle2 },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },

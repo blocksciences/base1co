@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Rocket, CheckCircle2, Shield, Users, TrendingUp } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const LaunchICO = () => {
   const { toast } = useToast();
@@ -27,13 +28,28 @@ const LaunchICO = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate submission - replace with actual backend call
-    setTimeout(() => {
+    try {
+      const { error } = await supabase
+        .from('project_applications')
+        .insert({
+          project_name: formData.projectName,
+          email: formData.email,
+          website: formData.website || null,
+          whitepaper: formData.whitepaper || null,
+          description: formData.description,
+          token_name: formData.tokenName,
+          token_symbol: formData.tokenSymbol,
+          total_supply: parseFloat(formData.totalSupply),
+          funding_goal_usd: parseFloat(formData.fundingGoal),
+        });
+
+      if (error) throw error;
+
       toast({
         title: "Application Submitted!",
         description: "Our team will review your project and get back to you within 48 hours.",
       });
-      setIsSubmitting(false);
+      
       setFormData({
         projectName: '',
         email: '',
@@ -45,7 +61,16 @@ const LaunchICO = () => {
         fundingGoal: '',
         whitepaper: '',
       });
-    }, 1500);
+    } catch (error) {
+      console.error('Error submitting application:', error);
+      toast({
+        title: "Submission Failed",
+        description: "There was an error submitting your application. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

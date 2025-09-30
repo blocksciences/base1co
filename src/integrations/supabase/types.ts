@@ -254,6 +254,63 @@ export type Database = {
         }
         Relationships: []
       }
+      project_applications: {
+        Row: {
+          created_at: string
+          description: string
+          email: string
+          funding_goal_usd: number
+          id: string
+          project_name: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          token_name: string
+          token_symbol: string
+          total_supply: number
+          updated_at: string
+          website: string | null
+          whitepaper: string | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          email: string
+          funding_goal_usd: number
+          id?: string
+          project_name: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          token_name: string
+          token_symbol: string
+          total_supply: number
+          updated_at?: string
+          website?: string | null
+          whitepaper?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          email?: string
+          funding_goal_usd?: number
+          id?: string
+          project_name?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          token_name?: string
+          token_symbol?: string
+          total_supply?: number
+          updated_at?: string
+          website?: string | null
+          whitepaper?: string | null
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
           contract_address: string | null

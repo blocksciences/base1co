@@ -17,6 +17,7 @@ import LaunchICO from "./pages/LaunchICO";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProjects from "./pages/admin/AdminProjects";
 import CreateICO from "./pages/admin/CreateICO";
+import ProjectApplications from "./pages/admin/ProjectApplications";
 import AdminUsers from "./pages/admin/AdminUsers";
 import KYCApprovals from "./pages/admin/KYCApprovals";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
@@ -56,6 +57,7 @@ const App = () => (
               <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
               <Route path="/admin/projects" element={<AdminProtectedRoute><AdminProjects /></AdminProtectedRoute>} />
               <Route path="/admin/create-ico" element={<AdminProtectedRoute><CreateICO /></AdminProtectedRoute>} />
+              <Route path="/admin/applications" element={<AdminProtectedRoute><ProjectApplications /></AdminProtectedRoute>} />
               <Route path="/admin/users" element={<AdminProtectedRoute><AdminUsers /></AdminProtectedRoute>} />
               <Route path="/admin/kyc" element={<AdminProtectedRoute><KYCApprovals /></AdminProtectedRoute>} />
               <Route path="/admin/analytics" element={<AdminProtectedRoute><AdminAnalytics /></AdminProtectedRoute>} />
