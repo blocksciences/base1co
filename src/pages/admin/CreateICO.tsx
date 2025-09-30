@@ -16,14 +16,19 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Upload, Plus, X } from 'lucide-react';
+import { CalendarIcon, Upload, Plus, X, Rocket } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { useContractDeployment } from '@/hooks/useContractDeployment';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export const CreateICO = () => {
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [teamMembers, setTeamMembers] = useState([{ name: '', role: '', image: '' }]);
+  const [deploymentResult, setDeploymentResult] = useState<any>(null);
+  
+  const { deployContracts, isDeploying } = useContractDeployment();
   
   const addTeamMember = () => {
     setTeamMembers([...teamMembers, { name: '', role: '', image: '' }]);
@@ -31,6 +36,44 @@ export const CreateICO = () => {
   
   const removeTeamMember = (index: number) => {
     setTeamMembers(teamMembers.filter((_, i) => i !== index));
+  };
+  
+  const handleDeploy = async () => {
+    const form = document.getElementById('ico-form') as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    const projectName = formData.get('project-name') as string;
+    const tokenSymbol = formData.get('token-symbol') as string;
+    const totalSupply = formData.get('total-supply') as string;
+    const softCap = formData.get('soft-cap') as string;
+    const hardCap = formData.get('hard-cap') as string;
+    const minContribution = formData.get('min-contribution') as string;
+    const maxContribution = formData.get('max-contribution') as string;
+    const initialPrice = formData.get('initial-price') as string;
+    
+    if (!projectName || !tokenSymbol || !totalSupply || !softCap || !hardCap || !startDate || !endDate) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    
+    const result = await deployContracts({
+      projectName,
+      tokenSymbol,
+      totalSupply,
+      tokenDecimals: 18,
+      tokenPrice: initialPrice || '0.0001',
+      softCap,
+      hardCap,
+      minContribution: minContribution || '0.1',
+      maxContribution: maxContribution || '100',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+    });
+    
+    if (result) {
+      setDeploymentResult(result);
+      toast.success('Review the deployment instructions below');
+    }
   };
   
   const handleSubmit = (e: React.FormEvent) => {
@@ -52,7 +95,7 @@ export const CreateICO = () => {
               <p className="text-muted-foreground">Launch a new token sale project on the platform</p>
             </div>
             
-            <form onSubmit={handleSubmit}>
+            <form id="ico-form" onSubmit={handleSubmit}>
               <Tabs defaultValue="basic" className="space-y-6">
                 <TabsList className="glass">
                   <TabsTrigger value="basic">Basic Info</TabsTrigger>
@@ -70,12 +113,12 @@ export const CreateICO = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <Label htmlFor="project-name">Project Name *</Label>
-                        <Input id="project-name" placeholder="DeFi Protocol X" required />
+                        <Input name="project-name" id="project-name" placeholder="DeFi Protocol X" required />
                       </div>
                       
                       <div className="space-y-2">
                         <Label htmlFor="token-symbol">Token Symbol *</Label>
-                        <Input id="token-symbol" placeholder="DPX" required />
+                        <Input name="token-symbol" id="token-symbol" placeholder="DPX" required />
                       </div>
                     </div>
                     
@@ -139,15 +182,15 @@ export const CreateICO = () => {
                     <h2 className="text-xl font-bold">Token Distribution</h2>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="total-supply">Total Supply *</Label>
-                        <Input id="total-supply" type="number" placeholder="1000000000" required />
-                      </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="total-supply">Total Supply *</Label>
+                      <Input name="total-supply" id="total-supply" type="number" placeholder="1000000000" required />
+                    </div>
                       
-                      <div className="space-y-2">
-                        <Label htmlFor="initial-price">Initial Token Price (USD) *</Label>
-                        <Input id="initial-price" type="number" step="0.01" placeholder="0.05" required />
-                      </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="initial-price">Initial Token Price (ETH) *</Label>
+                      <Input name="initial-price" id="initial-price" type="number" step="0.0001" placeholder="0.0001" required />
+                    </div>
                     </div>
                     
                     <div className="space-y-4">
@@ -207,24 +250,24 @@ export const CreateICO = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <Label htmlFor="soft-cap">Soft Cap (ETH) *</Label>
-                        <Input id="soft-cap" type="number" step="0.1" placeholder="1000" required />
+                        <Input name="soft-cap" id="soft-cap" type="number" step="0.1" placeholder="1000" required />
                       </div>
                       
                       <div className="space-y-2">
                         <Label htmlFor="hard-cap">Hard Cap (ETH) *</Label>
-                        <Input id="hard-cap" type="number" step="0.1" placeholder="5000" required />
+                        <Input name="hard-cap" id="hard-cap" type="number" step="0.1" placeholder="5000" required />
                       </div>
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <Label htmlFor="min-contribution">Minimum Contribution (ETH)</Label>
-                        <Input id="min-contribution" type="number" step="0.01" placeholder="0.1" />
+                        <Input name="min-contribution" id="min-contribution" type="number" step="0.01" placeholder="0.1" />
                       </div>
                       
                       <div className="space-y-2">
                         <Label htmlFor="max-contribution">Maximum Contribution (ETH)</Label>
-                        <Input id="max-contribution" type="number" step="0.1" placeholder="100" />
+                        <Input name="max-contribution" id="max-contribution" type="number" step="0.1" placeholder="100" />
                       </div>
                     </div>
                     
@@ -369,14 +412,47 @@ export const CreateICO = () => {
                       <Input id="audit-report" type="url" placeholder="https://..." />
                     </div>
                     
-                    <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-                      <h3 className="font-semibold mb-2">Contract Deployment</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        If you haven't deployed your contracts yet, you can use our automated deployment tool.
-                      </p>
-                      <Button type="button" variant="outline">
-                        Deploy Contracts
-                      </Button>
+                    <div className="p-4 rounded-lg bg-primary/10 border border-primary/20 space-y-4">
+                      <div>
+                        <h3 className="font-semibold mb-2">Contract Deployment</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Deploy your ICO contracts directly to Base network. This will create both the ERC20 token contract and the ICO sale contract.
+                        </p>
+                        <Button 
+                          type="button" 
+                          onClick={handleDeploy}
+                          disabled={isDeploying}
+                          className="gap-2"
+                        >
+                          <Rocket className="h-4 w-4" />
+                          {isDeploying ? 'Deploying...' : 'Deploy Contracts'}
+                        </Button>
+                      </div>
+                      
+                      {deploymentResult && (
+                        <Alert>
+                          <AlertDescription className="space-y-3">
+                            <div>
+                              <p className="font-semibold mb-2">✅ Deployment Initiated</p>
+                              <p className="text-sm mb-2">Project ID: {deploymentResult.projectId}</p>
+                            </div>
+                            
+                            <div className="text-sm space-y-1">
+                              <p className="font-semibold">Next Steps:</p>
+                              <ol className="list-decimal list-inside space-y-1 ml-2">
+                                <li>Install dependencies: <code className="bg-muted px-1 rounded">cd contracts && npm install</code></li>
+                                <li>Set up your .env file with private key and RPC URLs</li>
+                                <li>Deploy: <code className="bg-muted px-1 rounded">npm run deploy -- --network baseSepolia</code></li>
+                                <li>Copy the deployed contract addresses and paste them above</li>
+                              </ol>
+                            </div>
+                            
+                            <div className="text-xs bg-muted p-2 rounded overflow-x-auto">
+                              <pre>{deploymentResult.deploymentScript}</pre>
+                            </div>
+                          </AlertDescription>
+                        </Alert>
+                      )}
                     </div>
                   </Card>
                 </TabsContent>
