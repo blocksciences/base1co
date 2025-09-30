@@ -258,17 +258,25 @@ export type Database = {
         Row: {
           created_at: string
           description: string
+          discord: string | null
           email: string
           funding_goal_usd: number
+          hard_cap: number | null
           id: string
+          initial_price: number | null
+          max_contribution: number | null
+          min_contribution: number | null
           project_name: string
           rejection_reason: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          soft_cap: number | null
           status: string
+          telegram: string | null
           token_name: string
           token_symbol: string
           total_supply: number
+          twitter: string | null
           updated_at: string
           website: string | null
           whitepaper: string | null
@@ -276,17 +284,25 @@ export type Database = {
         Insert: {
           created_at?: string
           description: string
+          discord?: string | null
           email: string
           funding_goal_usd: number
+          hard_cap?: number | null
           id?: string
+          initial_price?: number | null
+          max_contribution?: number | null
+          min_contribution?: number | null
           project_name: string
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          soft_cap?: number | null
           status?: string
+          telegram?: string | null
           token_name: string
           token_symbol: string
           total_supply: number
+          twitter?: string | null
           updated_at?: string
           website?: string | null
           whitepaper?: string | null
@@ -294,17 +310,25 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string
+          discord?: string | null
           email?: string
           funding_goal_usd?: number
+          hard_cap?: number | null
           id?: string
+          initial_price?: number | null
+          max_contribution?: number | null
+          min_contribution?: number | null
           project_name?: string
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          soft_cap?: number | null
           status?: string
+          telegram?: string | null
           token_name?: string
           token_symbol?: string
           total_supply?: number
+          twitter?: string | null
           updated_at?: string
           website?: string | null
           whitepaper?: string | null

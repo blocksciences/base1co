@@ -22,6 +22,14 @@ const LaunchICO = () => {
     totalSupply: '',
     fundingGoal: '',
     whitepaper: '',
+    twitter: '',
+    telegram: '',
+    discord: '',
+    initialPrice: '',
+    softCap: '',
+    hardCap: '',
+    minContribution: '',
+    maxContribution: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,6 +49,14 @@ const LaunchICO = () => {
           token_symbol: formData.tokenSymbol,
           total_supply: parseFloat(formData.totalSupply),
           funding_goal_usd: parseFloat(formData.fundingGoal),
+          twitter: formData.twitter || null,
+          telegram: formData.telegram || null,
+          discord: formData.discord || null,
+          initial_price: formData.initialPrice ? parseFloat(formData.initialPrice) : null,
+          soft_cap: formData.softCap ? parseFloat(formData.softCap) : null,
+          hard_cap: formData.hardCap ? parseFloat(formData.hardCap) : null,
+          min_contribution: formData.minContribution ? parseFloat(formData.minContribution) : null,
+          max_contribution: formData.maxContribution ? parseFloat(formData.maxContribution) : null,
         });
 
       if (error) throw error;
@@ -60,6 +76,14 @@ const LaunchICO = () => {
         totalSupply: '',
         fundingGoal: '',
         whitepaper: '',
+        twitter: '',
+        telegram: '',
+        discord: '',
+        initialPrice: '',
+        softCap: '',
+        hardCap: '',
+        minContribution: '',
+        maxContribution: '',
       });
     } catch (error) {
       console.error('Error submitting application:', error);
@@ -174,30 +198,6 @@ const LaunchICO = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="website">Website</Label>
-                  <Input
-                    id="website"
-                    name="website"
-                    type="url"
-                    value={formData.website}
-                    onChange={handleChange}
-                    placeholder="https://yourproject.com"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="whitepaper">Whitepaper URL</Label>
-                  <Input
-                    id="whitepaper"
-                    name="whitepaper"
-                    type="url"
-                    value={formData.whitepaper}
-                    onChange={handleChange}
-                    placeholder="https://yourproject.com/whitepaper.pdf"
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="tokenName">Token Name *</Label>
                   <Input
                     id="tokenName"
@@ -222,6 +222,63 @@ const LaunchICO = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="website">Website</Label>
+                  <Input
+                    id="website"
+                    name="website"
+                    type="url"
+                    value={formData.website}
+                    onChange={handleChange}
+                    placeholder="https://yourproject.com"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="whitepaper">Whitepaper URL</Label>
+                  <Input
+                    id="whitepaper"
+                    name="whitepaper"
+                    type="url"
+                    value={formData.whitepaper}
+                    onChange={handleChange}
+                    placeholder="https://yourproject.com/whitepaper.pdf"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="twitter">Twitter</Label>
+                  <Input
+                    id="twitter"
+                    name="twitter"
+                    value={formData.twitter}
+                    onChange={handleChange}
+                    placeholder="@yourproject"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="telegram">Telegram</Label>
+                  <Input
+                    id="telegram"
+                    name="telegram"
+                    value={formData.telegram}
+                    onChange={handleChange}
+                    placeholder="t.me/yourproject"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="discord">Discord</Label>
+                  <Input
+                    id="discord"
+                    name="discord"
+                    value={formData.discord}
+                    onChange={handleChange}
+                    placeholder="discord.gg/yourproject"
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="totalSupply">Total Supply *</Label>
                   <Input
                     id="totalSupply"
@@ -230,6 +287,20 @@ const LaunchICO = () => {
                     value={formData.totalSupply}
                     onChange={handleChange}
                     placeholder="1000000000"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="initialPrice">Initial Token Price (ETH) *</Label>
+                  <Input
+                    id="initialPrice"
+                    name="initialPrice"
+                    type="number"
+                    step="0.0001"
+                    value={formData.initialPrice}
+                    onChange={handleChange}
+                    placeholder="0.0001"
                     required
                   />
                 </div>
@@ -244,6 +315,60 @@ const LaunchICO = () => {
                     onChange={handleChange}
                     placeholder="500000"
                     required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="softCap">Soft Cap (ETH) *</Label>
+                  <Input
+                    id="softCap"
+                    name="softCap"
+                    type="number"
+                    step="0.1"
+                    value={formData.softCap}
+                    onChange={handleChange}
+                    placeholder="1000"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="hardCap">Hard Cap (ETH) *</Label>
+                  <Input
+                    id="hardCap"
+                    name="hardCap"
+                    type="number"
+                    step="0.1"
+                    value={formData.hardCap}
+                    onChange={handleChange}
+                    placeholder="5000"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="minContribution">Minimum Contribution (ETH)</Label>
+                  <Input
+                    id="minContribution"
+                    name="minContribution"
+                    type="number"
+                    step="0.01"
+                    value={formData.minContribution}
+                    onChange={handleChange}
+                    placeholder="0.1"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="maxContribution">Maximum Contribution (ETH)</Label>
+                  <Input
+                    id="maxContribution"
+                    name="maxContribution"
+                    type="number"
+                    step="0.1"
+                    value={formData.maxContribution}
+                    onChange={handleChange}
+                    placeholder="100"
                   />
                 </div>
               </div>

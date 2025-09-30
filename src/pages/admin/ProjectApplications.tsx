@@ -30,6 +30,14 @@ interface Application {
   token_symbol: string;
   total_supply: number;
   funding_goal_usd: number;
+  twitter: string | null;
+  telegram: string | null;
+  discord: string | null;
+  initial_price: number | null;
+  soft_cap: number | null;
+  hard_cap: number | null;
+  min_contribution: number | null;
+  max_contribution: number | null;
   status: string;
   reviewed_by: string | null;
   reviewed_at: string | null;
@@ -160,7 +168,7 @@ const ProjectApplications = () => {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 text-sm">
                             <Mail className="h-4 w-4 text-muted-foreground" />
@@ -194,6 +202,24 @@ const ProjectApplications = () => {
                               </a>
                             </div>
                           )}
+                          {app.twitter && (
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Twitter:</span>
+                              <span className="ml-2">{app.twitter}</span>
+                            </div>
+                          )}
+                          {app.telegram && (
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Telegram:</span>
+                              <span className="ml-2">{app.telegram}</span>
+                            </div>
+                          )}
+                          {app.discord && (
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Discord:</span>
+                              <span className="ml-2">{app.discord}</span>
+                            </div>
+                          )}
                         </div>
 
                         <div className="space-y-2">
@@ -201,10 +227,43 @@ const ProjectApplications = () => {
                             <span className="text-muted-foreground">Total Supply:</span>
                             <span className="ml-2 font-medium">{app.total_supply.toLocaleString()}</span>
                           </div>
+                          {app.initial_price && (
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Initial Price:</span>
+                              <span className="ml-2 font-medium">{app.initial_price} ETH</span>
+                            </div>
+                          )}
                           <div className="text-sm">
                             <span className="text-muted-foreground">Funding Goal:</span>
                             <span className="ml-2 font-medium">${app.funding_goal_usd.toLocaleString()}</span>
                           </div>
+                          {app.soft_cap && (
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Soft Cap:</span>
+                              <span className="ml-2 font-medium">{app.soft_cap} ETH</span>
+                            </div>
+                          )}
+                          {app.hard_cap && (
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Hard Cap:</span>
+                              <span className="ml-2 font-medium">{app.hard_cap} ETH</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          {app.min_contribution && (
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Min Contribution:</span>
+                              <span className="ml-2 font-medium">{app.min_contribution} ETH</span>
+                            </div>
+                          )}
+                          {app.max_contribution && (
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Max Contribution:</span>
+                              <span className="ml-2 font-medium">{app.max_contribution} ETH</span>
+                            </div>
+                          )}
                           <div className="text-sm">
                             <span className="text-muted-foreground">Submitted:</span>
                             <span className="ml-2 font-medium">

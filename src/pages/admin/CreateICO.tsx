@@ -472,7 +472,7 @@ export const CreateICO = () => {
                       Save Draft
                     </Button>
                     <Button type="submit" className="bg-gradient-primary">
-                      Submit for Approval
+                      Submit
                     </Button>
                   </div>
                 </div>
