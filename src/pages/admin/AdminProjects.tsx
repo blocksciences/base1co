@@ -16,8 +16,19 @@ import {
   XCircle,
   Plus
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Select,
   SelectContent,
@@ -27,8 +38,11 @@ import {
 } from '@/components/ui/select';
 
 export const AdminProjects = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   
   const projects = [
     { 
@@ -99,6 +113,53 @@ export const AdminProjects = () => {
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const handleView = (projectId: string) => {
+    navigate(`/projects/${projectId}`);
+  };
+
+  const handleEdit = (projectId: string) => {
+    toast.info('Edit functionality coming soon');
+    // TODO: Navigate to edit page or open edit modal
+    // navigate(`/admin/projects/edit/${projectId}`);
+  };
+
+  const handleStatusChange = (projectId: string, newStatus: string) => {
+    toast.success(`Project status changed to ${newStatus}`);
+    // TODO: Implement actual status update logic with backend
+    console.log(`Changing project ${projectId} status to ${newStatus}`);
+  };
+
+  const handleApprove = (projectId: string) => {
+    handleStatusChange(projectId, 'live');
+  };
+
+  const handleReject = (projectId: string) => {
+    handleStatusChange(projectId, 'rejected');
+  };
+
+  const handlePause = (projectId: string) => {
+    handleStatusChange(projectId, 'paused');
+  };
+
+  const handleActivate = (projectId: string) => {
+    handleStatusChange(projectId, 'live');
+  };
+
+  const confirmDelete = (projectId: string) => {
+    setProjectToDelete(projectId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = () => {
+    if (projectToDelete) {
+      toast.success('Project deleted successfully');
+      // TODO: Implement actual deletion logic with backend
+      console.log(`Deleting project ${projectToDelete}`);
+      setDeleteDialogOpen(false);
+      setProjectToDelete(null);
+    }
+  };
   
   return (
     <div className="flex min-h-screen">
@@ -215,31 +276,69 @@ export const AdminProjects = () => {
                       </td>
                       <td className="p-4">
                         <div className="flex items-center justify-end gap-2">
-                          <Button size="icon" variant="ghost" title="View">
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            title="View"
+                            onClick={() => handleView(project.id)}
+                          >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button size="icon" variant="ghost" title="Edit">
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            title="Edit"
+                            onClick={() => handleEdit(project.id)}
+                          >
                             <Edit className="h-4 w-4" />
                           </Button>
                           {project.status === 'live' ? (
-                            <Button size="icon" variant="ghost" title="Pause">
+                            <Button 
+                              size="icon" 
+                              variant="ghost" 
+                              title="Pause"
+                              onClick={() => handlePause(project.id)}
+                            >
                               <Pause className="h-4 w-4" />
                             </Button>
                           ) : project.status === 'pending' ? (
                             <>
-                              <Button size="icon" variant="ghost" title="Approve" className="text-success">
+                              <Button 
+                                size="icon" 
+                                variant="ghost" 
+                                title="Approve" 
+                                className="text-success hover:text-success"
+                                onClick={() => handleApprove(project.id)}
+                              >
                                 <CheckCircle2 className="h-4 w-4" />
                               </Button>
-                              <Button size="icon" variant="ghost" title="Reject" className="text-destructive">
+                              <Button 
+                                size="icon" 
+                                variant="ghost" 
+                                title="Reject" 
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => handleReject(project.id)}
+                              >
                                 <XCircle className="h-4 w-4" />
                               </Button>
                             </>
                           ) : (
-                            <Button size="icon" variant="ghost" title="Activate">
+                            <Button 
+                              size="icon" 
+                              variant="ghost" 
+                              title="Activate"
+                              onClick={() => handleActivate(project.id)}
+                            >
                               <Play className="h-4 w-4" />
                             </Button>
                           )}
-                          <Button size="icon" variant="ghost" title="Delete" className="text-destructive">
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            title="Delete" 
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => confirmDelete(project.id)}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -258,6 +357,25 @@ export const AdminProjects = () => {
           )}
         </main>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the project
+              and remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
