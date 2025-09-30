@@ -12,7 +12,9 @@ import {
   AlertCircle,
   ClipboardList,
   Clock,
-  Lock
+  Lock,
+  Building2,
+  Package
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -23,8 +25,10 @@ const navigation = [
   { name: 'Applications', href: '/admin/applications', icon: ClipboardList },
   { name: 'Users', href: '/admin/users', icon: Users },
   { name: 'KYC Approvals', href: '/admin/kyc', icon: CheckCircle2 },
+  { name: 'Entity KYC', href: '/admin/entity-kyc', icon: Building2 },
   { name: 'Vesting', href: '/admin/vesting', icon: Clock },
   { name: 'Liquidity Locks', href: '/admin/liquidity-locks', icon: Lock },
+  { name: 'Distributions', href: '/admin/distributions', icon: Package },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Transactions', href: '/admin/transactions', icon: TrendingUp },
   { name: 'Security', href: '/admin/security', icon: Shield },

@@ -11,3 +11,12 @@ verify_jwt = false
 
 [functions.admin-operations]
 verify_jwt = true
+
+[functions.kyc-webhook]
+verify_jwt = false
+
+[functions.priority-queue]
+verify_jwt = false
+
+[functions.batch-distribution]
+verify_jwt = true

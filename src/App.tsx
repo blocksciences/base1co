@@ -27,6 +27,8 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminManagement from "./pages/admin/AdminManagement";
 import VestingDashboard from "./pages/admin/VestingDashboard";
 import LiquidityLocks from "./pages/admin/LiquidityLocks";
+import EntityKYC from "./pages/admin/EntityKYC";
+import DistributionJobs from "./pages/admin/DistributionJobs";
 import ProjectTransparency from "./pages/ProjectTransparency";
 import NotFound from "./pages/NotFound";
 import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
@@ -69,6 +71,8 @@ const App = () => (
               <Route path="/admin/security" element={<AdminProtectedRoute><AdminSecurity /></AdminProtectedRoute>} />
               <Route path="/admin/vesting" element={<AdminProtectedRoute><VestingDashboard /></AdminProtectedRoute>} />
               <Route path="/admin/liquidity-locks" element={<AdminProtectedRoute><LiquidityLocks /></AdminProtectedRoute>} />
+              <Route path="/admin/entity-kyc" element={<AdminProtectedRoute><EntityKYC /></AdminProtectedRoute>} />
+              <Route path="/admin/distributions" element={<AdminProtectedRoute><DistributionJobs /></AdminProtectedRoute>} />
               <Route path="/admin/manage-admins" element={<AdminProtectedRoute><AdminManagement /></AdminProtectedRoute>} />
               <Route path="/admin/settings" element={<AdminProtectedRoute><AdminSettings /></AdminProtectedRoute>} />
               

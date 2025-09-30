@@ -68,6 +68,98 @@ export type Database = {
         }
         Relationships: []
       }
+      anomaly_logs: {
+        Row: {
+          anomaly_type: string
+          created_at: string | null
+          details: Json
+          id: string
+          resolved: boolean | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string | null
+          wallet_address: string | null
+        }
+        Insert: {
+          anomaly_type: string
+          created_at?: string | null
+          details: Json
+          id?: string
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string | null
+          wallet_address?: string | null
+        }
+        Update: {
+          anomaly_type?: string
+          created_at?: string | null
+          details?: Json
+          id?: string
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string | null
+          wallet_address?: string | null
+        }
+        Relationships: []
+      }
+      distribution_jobs: {
+        Row: {
+          batches: Json
+          completed_at: string | null
+          completed_batches: number | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          project_id: string | null
+          started_at: string | null
+          status: string | null
+          total_batches: number
+          total_recipients: number
+          total_tokens: number
+          updated_at: string | null
+        }
+        Insert: {
+          batches: Json
+          completed_at?: string | null
+          completed_batches?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          project_id?: string | null
+          started_at?: string | null
+          status?: string | null
+          total_batches: number
+          total_recipients: number
+          total_tokens: number
+          updated_at?: string | null
+        }
+        Update: {
+          batches?: Json
+          completed_at?: string | null
+          completed_batches?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          project_id?: string | null
+          started_at?: string | null
+          status?: string | null
+          total_batches?: number
+          total_recipients?: number
+          total_tokens?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "distribution_jobs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       eligibility_checks: {
         Row: {
           country_code: string | null
@@ -100,6 +192,63 @@ export type Database = {
           kyc_approved?: boolean | null
           last_checked_at?: string | null
           sanctions_check?: boolean | null
+          wallet_address?: string
+        }
+        Relationships: []
+      }
+      entity_kyc: {
+        Row: {
+          compliance_notes: string | null
+          contact_email: string
+          contact_name: string
+          created_at: string | null
+          documents: Json | null
+          entity_name: string
+          entity_type: string
+          id: string
+          jurisdiction: string
+          registration_number: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          risk_level: string | null
+          status: string | null
+          updated_at: string | null
+          wallet_address: string
+        }
+        Insert: {
+          compliance_notes?: string | null
+          contact_email: string
+          contact_name: string
+          created_at?: string | null
+          documents?: Json | null
+          entity_name: string
+          entity_type: string
+          id?: string
+          jurisdiction: string
+          registration_number?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          risk_level?: string | null
+          status?: string | null
+          updated_at?: string | null
+          wallet_address: string
+        }
+        Update: {
+          compliance_notes?: string | null
+          contact_email?: string
+          contact_name?: string
+          created_at?: string | null
+          documents?: Json | null
+          entity_name?: string
+          entity_type?: string
+          id?: string
+          jurisdiction?: string
+          registration_number?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          risk_level?: string | null
+          status?: string | null
+          updated_at?: string | null
           wallet_address?: string
         }
         Relationships: []
@@ -297,6 +446,41 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      priority_whitelist: {
+        Row: {
+          added_by: string | null
+          created_at: string | null
+          id: string
+          project_id: string | null
+          reason: string | null
+          wallet_address: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+          reason?: string | null
+          wallet_address: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+          reason?: string | null
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "priority_whitelist_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -544,6 +728,80 @@ export type Database = {
           },
         ]
       }
+      queue_tickets: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          position: number
+          priority: boolean | null
+          project_id: string | null
+          status: string | null
+          updated_at: string | null
+          wallet_address: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          position: number
+          priority?: boolean | null
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          wallet_address: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          position?: number
+          priority?: boolean | null
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "queue_tickets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rate_limits: {
+        Row: {
+          action_type: string
+          count: number | null
+          created_at: string | null
+          id: string
+          project_id: string | null
+          wallet_address: string
+          window_start: string | null
+        }
+        Insert: {
+          action_type: string
+          count?: number | null
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+          wallet_address: string
+          window_start?: string | null
+        }
+        Update: {
+          action_type?: string
+          count?: number | null
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+          wallet_address?: string
+          window_start?: string | null
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount_crypto: string
@@ -729,6 +987,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      webhook_events: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          event_type: string
+          id: string
+          payload: Json
+          processed_at: string | null
+          provider: string
+          retries: number | null
+          signature: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type: string
+          id?: string
+          payload: Json
+          processed_at?: string | null
+          provider: string
+          retries?: number | null
+          signature?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          provider?: string
+          retries?: number | null
+          signature?: string | null
+          status?: string | null
+        }
+        Relationships: []
       }
     }
     Views: {
