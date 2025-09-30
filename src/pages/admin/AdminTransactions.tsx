@@ -4,75 +4,36 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, ExternalLink, Download } from 'lucide-react';
+import { Search, ExternalLink, Download, Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { useTransactions } from '@/hooks/useAdminData';
 
 export const AdminTransactions = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  
-  const transactions = [
-    {
-      id: '1',
-      type: 'investment',
-      from: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-      project: 'DeFi Protocol X',
-      amount: '5.0 ETH',
-      usdValue: '$10,250',
-      timestamp: '2025-09-30 14:23:15',
-      status: 'confirmed',
-      txHash: '0x1234...5678'
-    },
-    {
-      id: '2',
-      type: 'claim',
-      from: '0x853d955aCEf822Db058eb8505911ED77F175b99e',
-      project: 'GameFi Universe',
-      amount: '50,000 GFU',
-      usdValue: '$1,500',
-      timestamp: '2025-09-30 13:45:32',
-      status: 'confirmed',
-      txHash: '0xabcd...efgh'
-    },
-    {
-      id: '3',
-      type: 'investment',
-      from: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-      project: 'MetaAI Network',
-      amount: '10.5 ETH',
-      usdValue: '$21,525',
-      timestamp: '2025-09-30 12:10:45',
-      status: 'confirmed',
-      txHash: '0x9876...5432'
-    },
-    {
-      id: '4',
-      type: 'investment',
-      from: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
-      project: 'DeFi Protocol X',
-      amount: '2.5 ETH',
-      usdValue: '$5,125',
-      timestamp: '2025-09-30 11:32:18',
-      status: 'pending',
-      txHash: '0xfedc...ba98'
-    },
-    {
-      id: '5',
-      type: 'refund',
-      from: '0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE',
-      project: 'EcoToken',
-      amount: '3.0 ETH',
-      usdValue: '$6,150',
-      timestamp: '2025-09-30 10:15:42',
-      status: 'confirmed',
-      txHash: '0x5678...1234'
-    },
-  ];
+  const { transactions, loading } = useTransactions();
   
   const filteredTransactions = transactions.filter(tx =>
-    tx.from.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tx.project.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tx.txHash.toLowerCase().includes(searchTerm.toLowerCase())
+    tx.from_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (tx.project_name && tx.project_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    tx.tx_hash.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const volume24h = transactions
+    .filter(tx => {
+      const txTime = new Date(tx.timestamp);
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      return txTime > oneDayAgo;
+    })
+    .reduce((sum, tx) => sum + (tx.amount_usd || 0), 0);
+
+  const transactions24h = transactions.filter(tx => {
+    const txTime = new Date(tx.timestamp);
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    return txTime > oneDayAgo;
+  }).length;
+
+  const avgTransaction = transactions24h > 0 ? volume24h / transactions24h : 0;
+  const pendingCount = transactions.filter(tx => tx.status === 'pending').length;
   
   return (
     <div className="flex min-h-screen">
@@ -97,19 +58,19 @@ export const AdminTransactions = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <Card className="glass p-6">
               <p className="text-sm text-muted-foreground mb-1">Total Volume (24h)</p>
-              <p className="text-3xl font-bold">$156.2K</p>
+              <p className="text-3xl font-bold">${(volume24h / 1000).toFixed(1)}K</p>
             </Card>
             <Card className="glass p-6">
               <p className="text-sm text-muted-foreground mb-1">Transactions (24h)</p>
-              <p className="text-3xl font-bold">342</p>
+              <p className="text-3xl font-bold">{transactions24h}</p>
             </Card>
             <Card className="glass p-6">
               <p className="text-sm text-muted-foreground mb-1">Avg. Transaction</p>
-              <p className="text-3xl font-bold">$457</p>
+              <p className="text-3xl font-bold">${avgTransaction.toFixed(0)}</p>
             </Card>
             <Card className="glass p-6">
               <p className="text-sm text-muted-foreground mb-1">Pending</p>
-              <p className="text-3xl font-bold text-secondary">12</p>
+              <p className="text-3xl font-bold text-secondary">{pendingCount}</p>
             </Card>
           </div>
           
@@ -128,71 +89,79 @@ export const AdminTransactions = () => {
           
           {/* Transactions Table */}
           <Card className="glass overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="border-b border-border/50">
-                  <tr>
-                    <th className="text-left p-4 font-semibold">Type</th>
-                    <th className="text-left p-4 font-semibold">From</th>
-                    <th className="text-left p-4 font-semibold">Project</th>
-                    <th className="text-left p-4 font-semibold">Amount</th>
-                    <th className="text-left p-4 font-semibold">USD Value</th>
-                    <th className="text-left p-4 font-semibold">Time</th>
-                    <th className="text-left p-4 font-semibold">Status</th>
-                    <th className="text-right p-4 font-semibold">TX Hash</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTransactions.map((tx) => (
-                    <tr key={tx.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
-                      <td className="p-4">
-                        <Badge className={
-                          tx.type === 'investment' ? 'bg-primary' :
-                          tx.type === 'claim' ? 'bg-success' :
-                          'bg-secondary'
-                        }>
-                          {tx.type}
-                        </Badge>
-                      </td>
-                      <td className="p-4">
-                        <code className="text-sm">
-                          {tx.from.slice(0, 6)}...{tx.from.slice(-4)}
-                        </code>
-                      </td>
-                      <td className="p-4">
-                        <p className="font-medium">{tx.project}</p>
-                      </td>
-                      <td className="p-4">
-                        <p className="font-semibold">{tx.amount}</p>
-                      </td>
-                      <td className="p-4">
-                        <p className="text-muted-foreground">{tx.usdValue}</p>
-                      </td>
-                      <td className="p-4">
-                        <p className="text-sm text-muted-foreground">{tx.timestamp}</p>
-                      </td>
-                      <td className="p-4">
-                        <Badge className={
-                          tx.status === 'confirmed' ? 'bg-success' : 'bg-secondary'
-                        }>
-                          {tx.status}
-                        </Badge>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <code className="text-sm">
-                            {tx.txHash.slice(0, 6)}...{tx.txHash.slice(-4)}
-                          </code>
-                          <Button size="icon" variant="ghost" className="h-8 w-8">
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="border-b border-border/50">
+                    <tr>
+                      <th className="text-left p-4 font-semibold">Type</th>
+                      <th className="text-left p-4 font-semibold">From</th>
+                      <th className="text-left p-4 font-semibold">Project</th>
+                      <th className="text-left p-4 font-semibold">Amount</th>
+                      <th className="text-left p-4 font-semibold">USD Value</th>
+                      <th className="text-left p-4 font-semibold">Time</th>
+                      <th className="text-left p-4 font-semibold">Status</th>
+                      <th className="text-right p-4 font-semibold">TX Hash</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {filteredTransactions.map((tx) => (
+                      <tr key={tx.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
+                        <td className="p-4">
+                          <Badge className={
+                            tx.transaction_type === 'investment' ? 'bg-primary' :
+                            tx.transaction_type === 'claim' ? 'bg-success' :
+                            'bg-secondary'
+                          }>
+                            {tx.transaction_type}
+                          </Badge>
+                        </td>
+                        <td className="p-4">
+                          <code className="text-sm">
+                            {tx.from_address.slice(0, 6)}...{tx.from_address.slice(-4)}
+                          </code>
+                        </td>
+                        <td className="p-4">
+                          <p className="font-medium">{tx.project_name || 'Unknown'}</p>
+                        </td>
+                        <td className="p-4">
+                          <p className="font-semibold">{tx.amount_crypto}</p>
+                        </td>
+                        <td className="p-4">
+                          <p className="text-muted-foreground">${tx.amount_usd?.toLocaleString() || '0'}</p>
+                        </td>
+                        <td className="p-4">
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(tx.timestamp).toLocaleString()}
+                          </p>
+                        </td>
+                        <td className="p-4">
+                          <Badge className={
+                            tx.status === 'confirmed' ? 'bg-success' : 'bg-secondary'
+                          }>
+                            {tx.status}
+                          </Badge>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center justify-end gap-2">
+                            <code className="text-sm">
+                              {tx.tx_hash.slice(0, 6)}...{tx.tx_hash.slice(-4)}
+                            </code>
+                            <Button size="icon" variant="ghost" className="h-8 w-8">
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </Card>
         </main>
       </div>
