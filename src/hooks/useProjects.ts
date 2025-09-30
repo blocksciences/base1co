@@ -100,7 +100,7 @@ export const useProjects = () => {
   return useQuery({
     queryKey: ['projects'],
     queryFn: async () => {
-      // Fetch from database first, fall back to mock data
+      // Fetch from database
       const { data, error } = await supabase
         .from('projects')
         .select('*')
@@ -108,12 +108,12 @@ export const useProjects = () => {
       
       if (error) {
         console.error('Error fetching projects:', error);
-        return MOCK_PROJECTS;
+        throw error;
       }
       
-      // If database is empty, return mock projects
+      // Return empty array if no projects, don't fall back to mock data
       if (!data || data.length === 0) {
-        return MOCK_PROJECTS;
+        return [];
       }
       
       // Transform database projects to match Project type
@@ -131,6 +131,14 @@ export const useProjects = () => {
         endsIn: calculateTimeRemaining(p.end_date),
         network: 'Base',
         contractAddress: p.contract_address || '0x0000000000000000000000000000000000000000',
+        socialLinks: {
+          website: undefined,
+          twitter: undefined,
+          telegram: undefined,
+          discord: undefined,
+          medium: undefined,
+          whitepaper: undefined,
+        },
       }));
     },
     staleTime: 30000, // 30 seconds
@@ -154,7 +162,7 @@ export const useProject = (id: string) => {
   return useQuery({
     queryKey: ['project', id],
     queryFn: async () => {
-      // Try fetching from database first
+      // Try fetching from database
       const { data, error } = await supabase
         .from('projects')
         .select('*')
@@ -163,6 +171,7 @@ export const useProject = (id: string) => {
       
       if (error) {
         console.error('Error fetching project:', error);
+        return null;
       }
       
       // If found in database, transform and return
@@ -181,11 +190,19 @@ export const useProject = (id: string) => {
           endsIn: calculateTimeRemaining(data.end_date),
           network: 'Base',
           contractAddress: data.contract_address || '0x0000000000000000000000000000000000000000',
+          socialLinks: {
+            website: undefined,
+            twitter: undefined,
+            telegram: undefined,
+            discord: undefined,
+            medium: undefined,
+            whitepaper: undefined,
+          },
         };
       }
       
-      // Fall back to mock projects
-      return MOCK_PROJECTS.find(p => p.id === id);
+      // Return null if not found
+      return null;
     },
     enabled: !!id,
   });

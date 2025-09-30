@@ -78,6 +78,7 @@ export const AdminUsers = () => {
 
   const handleBanConfirm = async () => {
     if (selectedUser) {
+      console.log('Ban confirm - selected user:', selectedUser);
       const newBannedStatus = !selectedUser.banned;
       const { error } = await supabase
         .from('profiles')
@@ -85,14 +86,15 @@ export const AdminUsers = () => {
         .eq('id', selectedUser.id);
 
       if (error) {
+        console.error('Ban error:', error);
         toast.error('Failed to update user status');
-        console.error(error);
       } else {
         await refetch();
+        const walletAddress = selectedUser.wallet_address || selectedUser.address;
         toast.success(
           newBannedStatus
-            ? `User ${selectedUser.wallet_address.slice(0, 6)}...${selectedUser.wallet_address.slice(-4)} banned`
-            : `User ${selectedUser.wallet_address.slice(0, 6)}...${selectedUser.wallet_address.slice(-4)} unbanned`
+            ? `User ${walletAddress?.slice(0, 6)}...${walletAddress?.slice(-4)} banned`
+            : `User ${walletAddress?.slice(0, 6)}...${walletAddress?.slice(-4)} unbanned`
         );
       }
       setBanDialogOpen(false);
@@ -274,8 +276,8 @@ export const AdminUsers = () => {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {selectedUser?.banned
-                ? `Are you sure you want to unban ${selectedUser?.wallet_address}? They will regain full access to the platform.`
-                : `Are you sure you want to ban ${selectedUser?.wallet_address}? They will lose access to the platform.`
+                ? `Are you sure you want to unban ${selectedUser?.wallet_address || selectedUser?.address}? They will regain full access to the platform.`
+                : `Are you sure you want to ban ${selectedUser?.wallet_address || selectedUser?.address}? They will lose access to the platform.`
               }
             </AlertDialogDescription>
           </AlertDialogHeader>

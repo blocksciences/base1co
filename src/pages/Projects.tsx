@@ -89,36 +89,60 @@ export const Projects = () => {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filterProjects().map((project) => (
-                    <ProjectCard key={project.id} project={project} />
-                  ))}
+                  {filterProjects().length > 0 ? (
+                    filterProjects().map((project) => (
+                      <ProjectCard key={project.id} project={project} />
+                    ))
+                  ) : (
+                    <div className="col-span-3 text-center py-12">
+                      <p className="text-muted-foreground">No projects available</p>
+                    </div>
+                  )}
                 </div>
               </>
             )}
           </TabsContent>
           
           <TabsContent value="live" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filterProjects('live').map((project) => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
-            </div>
+            {filterProjects('live').length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filterProjects('live').map((project) => (
+                  <ProjectCard key={project.id} project={project} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No live projects</p>
+              </div>
+            )}
           </TabsContent>
           
           <TabsContent value="upcoming" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filterProjects('upcoming').map((project) => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
-            </div>
+            {filterProjects('upcoming').length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filterProjects('upcoming').map((project) => (
+                  <ProjectCard key={project.id} project={project} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No upcoming projects</p>
+              </div>
+            )}
           </TabsContent>
           
           <TabsContent value="success" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filterProjects('success').map((project) => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
-            </div>
+            {filterProjects('success').length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filterProjects('success').map((project) => (
+                  <ProjectCard key={project.id} project={project} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No completed projects</p>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </section>
