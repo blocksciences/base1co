@@ -71,49 +71,44 @@ export const AdminUsers = () => {
   };
 
   const handleBanClick = (user: any) => {
-    console.log('Ban clicked - user object:', user);
-    console.log('User ID:', user.id);
-    console.log('User banned status:', user.banned);
+    if (!user?.id || !user?.wallet_address) {
+      toast.error('Invalid user data');
+      return;
+    }
     setSelectedUser(user);
     setBanDialogOpen(true);
   };
 
   const handleBanConfirm = async () => {
-    if (!selectedUser) {
-      console.error('No user selected');
+    if (!selectedUser?.id) {
+      toast.error('No user selected');
       return;
     }
 
-    console.log('Ban confirm - selected user:', selectedUser);
-    console.log('User ID to update:', selectedUser.id);
-    console.log('Current banned status:', selectedUser.banned);
-    
-    const newBannedStatus = !selectedUser.banned;
-    console.log('New banned status will be:', newBannedStatus);
-    
-    const { data, error } = await supabase
-      .from('profiles')
-      .update({ banned: newBannedStatus })
-      .eq('id', selectedUser.id)
-      .select();
+    try {
+      const newBannedStatus = !selectedUser.banned;
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ banned: newBannedStatus })
+        .eq('id', selectedUser.id);
 
-    console.log('Update response - data:', data, 'error:', error);
+      if (error) throw error;
 
-    if (error) {
-      console.error('Ban error:', error);
-      toast.error(`Failed to update user status: ${error.message}`);
-    } else {
-      console.log('Ban successful, refetching profiles...');
       await refetch();
-      const walletAddress = selectedUser.wallet_address || selectedUser.address;
+      
       toast.success(
         newBannedStatus
-          ? `User ${walletAddress?.slice(0, 6)}...${walletAddress?.slice(-4)} banned`
-          : `User ${walletAddress?.slice(0, 6)}...${walletAddress?.slice(-4)} unbanned`
+          ? `User ${selectedUser.wallet_address.slice(0, 6)}...${selectedUser.wallet_address.slice(-4)} banned`
+          : `User ${selectedUser.wallet_address.slice(0, 6)}...${selectedUser.wallet_address.slice(-4)} unbanned`
       );
+    } catch (error: any) {
+      console.error('Ban error:', error);
+      toast.error(`Failed to update user status: ${error.message}`);
+    } finally {
+      setBanDialogOpen(false);
+      setSelectedUser(null);
     }
-    setBanDialogOpen(false);
-    setSelectedUser(null);
   };
   
   return (
@@ -290,8 +285,8 @@ export const AdminUsers = () => {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {selectedUser?.banned
-                ? `Are you sure you want to unban ${selectedUser?.wallet_address || selectedUser?.address}? They will regain full access to the platform.`
-                : `Are you sure you want to ban ${selectedUser?.wallet_address || selectedUser?.address}? They will lose access to the platform.`
+                ? `Are you sure you want to unban ${selectedUser?.wallet_address}? They will regain full access to the platform.`
+                : `Are you sure you want to ban ${selectedUser?.wallet_address}? They will lose access to the platform.`
               }
             </AlertDialogDescription>
           </AlertDialogHeader>
