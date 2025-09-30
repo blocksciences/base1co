@@ -13,6 +13,7 @@ import ProjectDetail from "./pages/ProjectDetail";
 import Dashboard from "./pages/Dashboard";
 import Staking from "./pages/Staking";
 import Auth from "./pages/Auth";
+import LaunchICO from "./pages/LaunchICO";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProjects from "./pages/admin/AdminProjects";
 import CreateICO from "./pages/admin/CreateICO";
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/project/:id" element={<ProjectDetail />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/staking" element={<Staking />} />
+            <Route path="/launch" element={<LaunchICO />} />
               
               {/* Admin Routes - Protected */}
               <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
