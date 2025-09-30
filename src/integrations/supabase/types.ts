@@ -47,6 +47,27 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_wallets: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          wallet_address: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          wallet_address: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          wallet_address?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -85,6 +106,10 @@ export type Database = {
       }
       is_current_user_admin: {
         Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_wallet_admin: {
+        Args: { check_wallet_address: string }
         Returns: boolean
       }
     }

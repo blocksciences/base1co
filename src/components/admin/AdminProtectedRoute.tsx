@@ -1,57 +1,17 @@
-import { Navigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Shield, AlertTriangle, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useEffect, useState } from 'react';
+import { useAccount } from 'wagmi';
+import { useWalletAdminStatus } from '@/hooks/useWalletAdminStatus';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 interface AdminProtectedRouteProps {
   children: React.ReactNode;
 }
 
 export const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
-  const [user, setUser] = useState<any>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
-
-      if (session?.user) {
-        const { data, error } = await supabase
-          .rpc('is_admin', { check_user_id: session.user.id });
-        
-        if (!error) {
-          setIsAdmin(data || false);
-        }
-      }
-      setLoading(false);
-    };
-
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user || null);
-        
-        if (session?.user) {
-          const { data, error } = await supabase
-            .rpc('is_admin', { check_user_id: session.user.id });
-          
-          if (!error) {
-            setIsAdmin(data || false);
-          }
-        } else {
-          setIsAdmin(false);
-        }
-        setLoading(false);
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const { address, isConnected } = useAccount();
+  const { isAdmin, loading } = useWalletAdminStatus(address);
   
   if (loading) {
     return (
@@ -61,8 +21,8 @@ export const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
     );
   }
 
-  // If user not logged in, redirect to auth
-  if (!user) {
+  // If wallet not connected
+  if (!isConnected || !address) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <Card className="glass p-12 max-w-md text-center space-y-6">
@@ -72,18 +32,16 @@ export const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
           <div className="space-y-2">
             <h2 className="text-2xl font-bold">Admin Access Required</h2>
             <p className="text-muted-foreground">
-              Please sign in to access the admin panel
+              Please connect your wallet to access the admin panel
             </p>
           </div>
-          <Button onClick={() => window.location.href = '/auth'}>
-            Sign In
-          </Button>
+          <ConnectButton />
         </Card>
       </div>
     );
   }
   
-  // If logged in but not admin, show access denied
+  // If wallet connected but not admin, show access denied
   if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
@@ -94,10 +52,10 @@ export const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
           <div className="space-y-2">
             <h2 className="text-2xl font-bold">Access Denied</h2>
             <p className="text-muted-foreground">
-              Your account is not authorized to access the admin panel
+              Your wallet is not authorized to access the admin panel
             </p>
-            <p className="text-xs text-muted-foreground font-mono mt-4">
-              User ID: {user?.id?.slice(0, 8)}...
+            <p className="text-xs text-muted-foreground font-mono mt-4 break-all">
+              Wallet: {address}
             </p>
           </div>
           <Button onClick={() => window.location.href = '/'}>
