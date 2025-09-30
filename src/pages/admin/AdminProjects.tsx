@@ -14,12 +14,15 @@ import {
   Pause,
   CheckCircle2,
   XCircle,
-  Plus
+  Plus,
+  Loader2
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { EditProjectModal } from '@/components/admin/EditProjectModal';
+import { useProjects as useAdminProjects } from '@/hooks/useAdminData';
+import { supabase } from '@/integrations/supabase/client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,82 +41,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-interface Project {
-  id: string;
-  name: string;
-  symbol: string;
-  status: string;
-  raised: string;
-  goal: string;
-  participants: number;
-  progress: number;
-  startDate: string;
-  endDate: string;
-}
-
-const INITIAL_PROJECTS: Project[] = [
-    { 
-      id: '1', 
-      name: 'DeFi Protocol X', 
-      symbol: 'DPX', 
-      status: 'live', 
-      raised: '1.2M', 
-      goal: '2M', 
-      participants: 3421,
-      progress: 60,
-      startDate: '2025-09-15',
-      endDate: '2025-10-15'
-    },
-    { 
-      id: '2', 
-      name: 'GameFi Universe', 
-      symbol: 'GFU', 
-      status: 'live', 
-      raised: '3.8M', 
-      goal: '5M', 
-      participants: 8921,
-      progress: 76,
-      startDate: '2025-09-10',
-      endDate: '2025-10-10'
-    },
-    { 
-      id: '3', 
-      name: 'MetaAI Network', 
-      symbol: 'MAI', 
-      status: 'pending', 
-      raised: '0', 
-      goal: '1.5M', 
-      participants: 0,
-      progress: 0,
-      startDate: '2025-10-01',
-      endDate: '2025-11-01'
-    },
-    { 
-      id: '4', 
-      name: 'EcoToken', 
-      symbol: 'ECO', 
-      status: 'upcoming', 
-      raised: '0', 
-      goal: '3M', 
-      participants: 0,
-      progress: 0,
-      startDate: '2025-10-05',
-      endDate: '2025-11-05'
-    },
-    { 
-      id: '5', 
-      name: 'SocialChain', 
-      symbol: 'SCH', 
-      status: 'ended', 
-      raised: '5.2M', 
-      goal: '5M', 
-      participants: 15430,
-      progress: 104,
-      startDate: '2025-08-01',
-      endDate: '2025-09-01'
-  },
-];
-
 export const AdminProjects = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
@@ -121,29 +48,10 @@ export const AdminProjects = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
-
-  // Initialize projects from localStorage or use defaults
-  useEffect(() => {
-    const storedProjects = localStorage.getItem('admin-projects');
-    if (storedProjects) {
-      try {
-        setProjects(JSON.parse(storedProjects));
-      } catch {
-        setProjects(INITIAL_PROJECTS);
-      }
-    } else {
-      setProjects(INITIAL_PROJECTS);
-    }
-  }, []);
-
-  // Save to localStorage whenever projects change
-  useEffect(() => {
-    if (projects.length > 0) {
-      localStorage.setItem('admin-projects', JSON.stringify(projects));
-    }
-  }, [projects]);
+  const [projectToEdit, setProjectToEdit] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  const { projects, loading, refetch } = useAdminProjects();
   
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -164,19 +72,46 @@ export const AdminProjects = () => {
     }
   };
 
-  const handleSaveEdit = (updatedProject: Project) => {
-    setProjects(prevProjects =>
-      prevProjects.map(p => p.id === updatedProject.id ? updatedProject : p)
-    );
+  const handleSaveEdit = async (updatedProject: any) => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          name: updatedProject.name,
+          symbol: updatedProject.symbol,
+          description: updatedProject.description,
+          status: updatedProject.status,
+          goal_amount: parseFloat(updatedProject.goal.replace(/[^0-9.]/g, '')),
+          start_date: updatedProject.startDate,
+          end_date: updatedProject.endDate,
+        })
+        .eq('id', updatedProject.id);
+      
+      if (error) throw error;
+      
+      await refetch();
+      toast.success('Project updated successfully');
+    } catch (error: any) {
+      console.error('Error updating project:', error);
+      toast.error('Failed to update project');
+    }
   };
 
-  const handleStatusChange = (projectId: string, newStatus: string) => {
-    setProjects(prevProjects =>
-      prevProjects.map(p => 
-        p.id === projectId ? { ...p, status: newStatus } : p
-      )
-    );
-    toast.success(`Project status changed to ${newStatus}`);
+  const handleStatusChange = async (projectId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ status: newStatus })
+        .eq('id', projectId);
+      
+      if (error) throw error;
+      
+      await refetch();
+      toast.success(`Project status changed to ${newStatus}`);
+    } catch (error: any) {
+      console.error('Error changing status:', error);
+      toast.error('Failed to change project status');
+    }
   };
 
   const handleApprove = (projectId: string) => {
@@ -200,12 +135,27 @@ export const AdminProjects = () => {
     setDeleteDialogOpen(true);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (projectToDelete) {
-      setProjects(prevProjects => prevProjects.filter(p => p.id !== projectToDelete));
-      toast.success('Project deleted successfully');
-      setDeleteDialogOpen(false);
-      setProjectToDelete(null);
+      setIsDeleting(true);
+      try {
+        const { error } = await supabase
+          .from('projects')
+          .delete()
+          .eq('id', projectToDelete);
+        
+        if (error) throw error;
+        
+        await refetch();
+        toast.success('Project deleted successfully');
+      } catch (error: any) {
+        console.error('Error deleting project:', error);
+        toast.error('Failed to delete project');
+      } finally {
+        setIsDeleting(false);
+        setDeleteDialogOpen(false);
+        setProjectToDelete(null);
+      }
     }
   };
   
@@ -275,124 +225,89 @@ export const AdminProjects = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredProjects.map((project) => (
-                    <tr key={project.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
-                      <td className="p-4">
-                        <div>
-                          <p className="font-semibold">{project.name}</p>
-                          <p className="text-sm text-muted-foreground">{project.symbol}</p>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <Badge className={
-                          project.status === 'live' ? 'bg-success' :
-                          project.status === 'pending' ? 'bg-secondary' :
-                          project.status === 'upcoming' ? 'bg-primary' :
-                          project.status === 'ended' ? 'bg-muted' :
-                          'bg-destructive'
-                        }>
-                          {project.status}
-                        </Badge>
-                      </td>
-                      <td className="p-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-sm">
-                            <span>{project.progress}%</span>
+                  {filteredProjects.map((project) => {
+                    const raised = Number(project.raised_amount || 0) / 1000000;
+                    const goal = Number(project.goal_amount || 1) / 1000000;
+                    
+                    return (
+                      <tr key={project.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
+                        <td className="p-4">
+                          <div>
+                            <p className="font-semibold">{project.name}</p>
+                            <p className="text-sm text-muted-foreground">{project.symbol}</p>
                           </div>
-                          <div className="h-2 bg-muted rounded-full overflow-hidden w-24">
-                            <div 
-                              className="h-full bg-gradient-primary"
-                              style={{ width: `${Math.min(project.progress, 100)}%` }}
-                            />
+                        </td>
+                        <td className="p-4">
+                          <Badge className={
+                            project.status === 'live' ? 'bg-success' :
+                            project.status === 'pending' ? 'bg-secondary' :
+                            project.status === 'upcoming' ? 'bg-primary' :
+                            project.status === 'ended' ? 'bg-muted' :
+                            'bg-destructive'
+                          }>
+                            {project.status}
+                          </Badge>
+                        </td>
+                        <td className="p-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between text-sm">
+                              <span>{project.progress_percentage}%</span>
+                            </div>
+                            <div className="h-2 bg-muted rounded-full overflow-hidden w-24">
+                              <div 
+                                className="h-full bg-gradient-primary"
+                                style={{ width: `${Math.min(project.progress_percentage, 100)}%` }}
+                              />
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div>
-                          <p className="font-semibold">${project.raised}</p>
-                          <p className="text-xs text-muted-foreground">of ${project.goal}</p>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <p className="font-semibold">{project.participants.toLocaleString()}</p>
-                      </td>
-                      <td className="p-4">
-                        <div className="text-sm">
-                          <p className="text-muted-foreground">{project.startDate}</p>
-                          <p className="text-muted-foreground">{project.endDate}</p>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button 
-                            size="icon" 
-                            variant="ghost" 
-                            title="View"
-                            onClick={() => handleView(project.id)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            size="icon" 
-                            variant="ghost" 
-                            title="Edit"
-                            onClick={() => handleEdit(project.id)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          {project.status === 'live' ? (
+                        </td>
+                        <td className="p-4">
+                          <div>
+                            <p className="font-semibold">${raised.toFixed(2)}M</p>
+                            <p className="text-xs text-muted-foreground">of ${goal.toFixed(2)}M</p>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <p className="font-semibold">{project.participants_count.toLocaleString()}</p>
+                        </td>
+                        <td className="p-4">
+                          <div className="text-sm">
+                            <p className="text-muted-foreground">{new Date(project.start_date).toLocaleDateString()}</p>
+                            <p className="text-muted-foreground">{new Date(project.end_date).toLocaleDateString()}</p>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center justify-end gap-2">
                             <Button 
                               size="icon" 
                               variant="ghost" 
-                              title="Pause"
-                              onClick={() => handlePause(project.id)}
+                              title="View"
+                              onClick={() => handleView(project.id)}
                             >
-                              <Pause className="h-4 w-4" />
+                              <Eye className="h-4 w-4" />
                             </Button>
-                          ) : project.status === 'pending' ? (
-                            <>
-                              <Button 
-                                size="icon" 
-                                variant="ghost" 
-                                title="Approve" 
-                                className="text-success hover:text-success"
-                                onClick={() => handleApprove(project.id)}
-                              >
-                                <CheckCircle2 className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                size="icon" 
-                                variant="ghost" 
-                                title="Reject" 
-                                className="text-destructive hover:text-destructive"
-                                onClick={() => handleReject(project.id)}
-                              >
-                                <XCircle className="h-4 w-4" />
-                              </Button>
-                            </>
-                          ) : (
                             <Button 
                               size="icon" 
                               variant="ghost" 
-                              title="Activate"
-                              onClick={() => handleActivate(project.id)}
+                              title="Edit"
+                              onClick={() => handleEdit(project.id)}
                             >
-                              <Play className="h-4 w-4" />
+                              <Edit className="h-4 w-4" />
                             </Button>
-                          )}
-                          <Button 
-                            size="icon" 
-                            variant="ghost" 
-                            title="Delete" 
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => confirmDelete(project.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            <Button 
+                              size="icon" 
+                              variant="ghost" 
+                              title="Delete" 
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => confirmDelete(project.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -417,9 +332,13 @@ export const AdminProjects = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-              Delete
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={isDeleting}
+            >
+              {isDeleting ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Deleting...</> : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
