@@ -12,6 +12,15 @@ import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
 import Dashboard from "./pages/Dashboard";
 import Staking from "./pages/Staking";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminProjects from "./pages/admin/AdminProjects";
+import CreateICO from "./pages/admin/CreateICO";
+import AdminUsers from "./pages/admin/AdminUsers";
+import KYCApprovals from "./pages/admin/KYCApprovals";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminTransactions from "./pages/admin/AdminTransactions";
+import AdminSecurity from "./pages/admin/AdminSecurity";
+import AdminSettings from "./pages/admin/AdminSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +45,18 @@ const App = () => (
               <Route path="/project/:id" element={<ProjectDetail />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/staking" element={<Staking />} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/projects" element={<AdminProjects />} />
+              <Route path="/admin/create-ico" element={<CreateICO />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/kyc" element={<KYCApprovals />} />
+              <Route path="/admin/analytics" element={<AdminAnalytics />} />
+              <Route path="/admin/transactions" element={<AdminTransactions />} />
+              <Route path="/admin/security" element={<AdminSecurity />} />
+              <Route path="/admin/settings" element={<AdminSettings />} />
+              
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

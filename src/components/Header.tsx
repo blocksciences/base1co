@@ -1,6 +1,7 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Link, useLocation } from 'react-router-dom';
-import { Rocket } from 'lucide-react';
+import { Rocket, Shield } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export const Header = () => {
   const location = useLocation();
@@ -50,6 +51,12 @@ export const Header = () => {
         </div>
         
         <div className="flex items-center gap-4">
+          <Link to="/admin">
+            <Button variant="ghost" size="sm" className="gap-2">
+              <Shield className="h-4 w-4" />
+              Admin
+            </Button>
+          </Link>
           <ConnectButton
             chainStatus="icon"
             showBalance={false}
