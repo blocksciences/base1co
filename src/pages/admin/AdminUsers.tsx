@@ -71,35 +71,49 @@ export const AdminUsers = () => {
   };
 
   const handleBanClick = (user: any) => {
-    console.log('Ban clicked', user);
+    console.log('Ban clicked - user object:', user);
+    console.log('User ID:', user.id);
+    console.log('User banned status:', user.banned);
     setSelectedUser(user);
     setBanDialogOpen(true);
   };
 
   const handleBanConfirm = async () => {
-    if (selectedUser) {
-      console.log('Ban confirm - selected user:', selectedUser);
-      const newBannedStatus = !selectedUser.banned;
-      const { error } = await supabase
-        .from('profiles')
-        .update({ banned: newBannedStatus })
-        .eq('id', selectedUser.id);
-
-      if (error) {
-        console.error('Ban error:', error);
-        toast.error('Failed to update user status');
-      } else {
-        await refetch();
-        const walletAddress = selectedUser.wallet_address || selectedUser.address;
-        toast.success(
-          newBannedStatus
-            ? `User ${walletAddress?.slice(0, 6)}...${walletAddress?.slice(-4)} banned`
-            : `User ${walletAddress?.slice(0, 6)}...${walletAddress?.slice(-4)} unbanned`
-        );
-      }
-      setBanDialogOpen(false);
-      setSelectedUser(null);
+    if (!selectedUser) {
+      console.error('No user selected');
+      return;
     }
+
+    console.log('Ban confirm - selected user:', selectedUser);
+    console.log('User ID to update:', selectedUser.id);
+    console.log('Current banned status:', selectedUser.banned);
+    
+    const newBannedStatus = !selectedUser.banned;
+    console.log('New banned status will be:', newBannedStatus);
+    
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ banned: newBannedStatus })
+      .eq('id', selectedUser.id)
+      .select();
+
+    console.log('Update response - data:', data, 'error:', error);
+
+    if (error) {
+      console.error('Ban error:', error);
+      toast.error(`Failed to update user status: ${error.message}`);
+    } else {
+      console.log('Ban successful, refetching profiles...');
+      await refetch();
+      const walletAddress = selectedUser.wallet_address || selectedUser.address;
+      toast.success(
+        newBannedStatus
+          ? `User ${walletAddress?.slice(0, 6)}...${walletAddress?.slice(-4)} banned`
+          : `User ${walletAddress?.slice(0, 6)}...${walletAddress?.slice(-4)} unbanned`
+      );
+    }
+    setBanDialogOpen(false);
+    setSelectedUser(null);
   };
   
   return (
