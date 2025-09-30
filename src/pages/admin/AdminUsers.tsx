@@ -46,12 +46,12 @@ export const AdminUsers = () => {
   const transformUserForModal = (user: any) => ({
     id: user.id,
     address: user.wallet_address,
-    kycStatus: user.kyc_status,
-    totalInvested: `${user.total_invested_eth.toFixed(2)} ETH`,
-    projects: user.projects_count,
-    joined: new Date(user.joined_at).toLocaleDateString(),
-    lastActive: new Date(user.last_active_at).toLocaleString(),
-    banned: user.banned,
+    kycStatus: user.kyc_status || 'pending',
+    totalInvested: `${(user.total_invested_eth || 0).toFixed(2)} ETH`,
+    projects: user.projects_count || 0,
+    joined: user.joined_at ? new Date(user.joined_at).toLocaleDateString() : 'Unknown',
+    lastActive: user.last_active_at ? new Date(user.last_active_at).toLocaleString() : 'Unknown',
+    banned: user.banned || false,
   });
 
   const handleViewProfile = (user: any) => {

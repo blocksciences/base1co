@@ -65,7 +65,7 @@ export const UserDetailsModal = ({ user, open, onOpenChange }: UserDetailsModalP
                 user.kycStatus === 'pending' ? 'bg-secondary' :
                 'bg-destructive'
               }>
-                {user.kycStatus.toUpperCase()}
+                {user.kycStatus?.toUpperCase() || 'UNKNOWN'}
               </Badge>
             </Card>
 

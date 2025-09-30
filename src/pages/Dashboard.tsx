@@ -312,7 +312,7 @@ export const Dashboard = () => {
                       kycStatus === 'rejected' ? 'bg-destructive' :
                       'bg-muted'
                     }>
-                      {kycStatus === 'not_submitted' ? 'Not Started' : kycStatus.toUpperCase()}
+                      {kycStatus === 'not_submitted' ? 'Not Started' : kycStatus?.toUpperCase() || 'UNKNOWN'}
                     </Badge>
                   </div>
 

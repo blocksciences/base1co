@@ -50,7 +50,7 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
           
           <Badge className={`${statusColors[project.status]} flex items-center gap-1`}>
             {statusIcons[project.status]}
-            {project.status.toUpperCase()}
+            {project.status?.toUpperCase() || 'UNKNOWN'}
           </Badge>
         </div>
         

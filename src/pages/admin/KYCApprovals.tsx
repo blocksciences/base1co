@@ -273,7 +273,7 @@ export const KYCApprovals = () => {
             submittedAt: new Date(selectedKYC.submitted_at).toLocaleString(),
             country: selectedKYC.country,
             documentType: selectedKYC.document_type,
-            riskScore: selectedKYC.risk_level.charAt(0).toUpperCase() + selectedKYC.risk_level.slice(1),
+            riskScore: selectedKYC.risk_level ? selectedKYC.risk_level.charAt(0).toUpperCase() + selectedKYC.risk_level.slice(1) : 'Unknown',
             documents: [selectedKYC.document_type, selectedKYC.document_number],
             status: selectedKYC.status as any
           }}

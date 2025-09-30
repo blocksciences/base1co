@@ -180,7 +180,7 @@ export const ProjectDetail = () => {
                     <h1 className="text-4xl font-bold">{project.name}</h1>
                     <Badge className="bg-success text-success-foreground">
                       <CheckCircle2 className="h-3 w-3 mr-1" />
-                      {project.status.toUpperCase()}
+                      {project.status?.toUpperCase() || 'UNKNOWN'}
                     </Badge>
                   </div>
                   <p className="text-lg text-muted-foreground">{project.symbol}</p>
