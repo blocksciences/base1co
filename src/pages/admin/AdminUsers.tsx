@@ -55,16 +55,23 @@ export const AdminUsers = () => {
   });
 
   const handleViewProfile = (user: any) => {
-    setSelectedUser(transformUserForModal(user));
+    console.log('View profile clicked', user);
+    const transformedUser = transformUserForModal(user);
+    console.log('Transformed user', transformedUser);
+    setSelectedUser(transformedUser);
     setUserDetailsOpen(true);
   };
 
   const handleSendMessage = (user: any) => {
-    setSelectedUser(transformUserForModal(user));
+    console.log('Send message clicked', user);
+    const transformedUser = transformUserForModal(user);
+    console.log('Transformed user for message', transformedUser);
+    setSelectedUser(transformedUser);
     setSendMessageOpen(true);
   };
 
   const handleBanClick = (user: any) => {
+    console.log('Ban clicked', user);
     setSelectedUser(user);
     setBanDialogOpen(true);
   };
@@ -190,13 +197,18 @@ export const AdminUsers = () => {
                             {new Date(user.last_active_at).toLocaleString()}
                           </p>
                         </td>
-                        <td className="p-4">
-                          <div className="flex items-center justify-end gap-2">
+                         <td className="p-4">
+                          <div className="flex items-center justify-end gap-2 relative z-10">
                             <Button 
                               size="icon" 
                               variant="ghost" 
                               title="View Profile"
-                              onClick={() => handleViewProfile(user)}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleViewProfile(user);
+                              }}
+                              type="button"
                             >
                               <UserCheck className="h-4 w-4" />
                             </Button>
@@ -204,7 +216,12 @@ export const AdminUsers = () => {
                               size="icon" 
                               variant="ghost" 
                               title="Send Message"
-                              onClick={() => handleSendMessage(user)}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleSendMessage(user);
+                              }}
+                              type="button"
                             >
                               <Mail className="h-4 w-4" />
                             </Button>
@@ -213,7 +230,12 @@ export const AdminUsers = () => {
                               variant="ghost" 
                               title={user.banned ? "Unban User" : "Ban User"}
                               className={user.banned ? "text-success" : "text-destructive"}
-                              onClick={() => handleBanClick(user)}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleBanClick(user);
+                              }}
+                              type="button"
                             >
                               <Ban className="h-4 w-4" />
                             </Button>
