@@ -3,10 +3,12 @@ import { AdminHeader } from '@/components/admin/AdminHeader';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, XCircle, Eye, AlertCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Eye, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { KYCDetailsModal } from '@/components/admin/KYCDetailsModal';
+import { useKYCSubmissions, type KYCSubmission } from '@/hooks/useAdminData';
+import { supabase } from '@/integrations/supabase/client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,88 +20,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-interface KYCSubmission {
-  id: string;
-  address: string;
-  submittedAt: string;
-  country: string;
-  documentType: string;
-  riskScore: string;
-  documents: string[];
-  status: 'pending' | 'approved' | 'rejected';
-}
-
-const INITIAL_KYC: KYCSubmission[] = [
-  {
-    id: '1',
-    address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-    submittedAt: '2025-09-30 10:30',
-    country: 'United States',
-    documentType: 'Passport',
-    riskScore: 'Low',
-    documents: ['ID Front', 'ID Back', 'Selfie', 'Proof of Address'],
-    status: 'pending'
-  },
-  {
-    id: '2',
-    address: '0x853d955aCEf822Db058eb8505911ED77F175b99e',
-    submittedAt: '2025-09-30 09:15',
-    country: 'United Kingdom',
-    documentType: 'Driver License',
-    riskScore: 'Low',
-    documents: ['ID Front', 'ID Back', 'Selfie'],
-    status: 'pending'
-  },
-  {
-    id: '3',
-    address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-    submittedAt: '2025-09-30 08:45',
-    country: 'Germany',
-    documentType: 'ID Card',
-    riskScore: 'Medium',
-    documents: ['ID Front', 'ID Back', 'Selfie', 'Proof of Address'],
-    status: 'pending'
-  },
-  {
-    id: '4',
-    address: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
-    submittedAt: '2025-09-29 16:20',
-    country: 'Singapore',
-    documentType: 'Passport',
-    riskScore: 'High',
-    documents: ['ID Front', 'ID Back', 'Selfie'],
-    status: 'pending'
-  },
-];
-
 export const KYCApprovals = () => {
-  const [kycSubmissions, setKycSubmissions] = useState<KYCSubmission[]>([]);
+  const { submissions: kycSubmissions, loading, refetch } = useKYCSubmissions();
   const [selectedKYC, setSelectedKYC] = useState<KYCSubmission | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [kycToProcess, setKycToProcess] = useState<KYCSubmission | null>(null);
-
-  // Initialize from localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem('admin-kyc-submissions');
-    if (stored) {
-      try {
-        setKycSubmissions(JSON.parse(stored));
-      } catch {
-        setKycSubmissions(INITIAL_KYC);
-      }
-    } else {
-      setKycSubmissions(INITIAL_KYC);
-    }
-  }, []);
-
-  // Save to localStorage
-  useEffect(() => {
-    if (kycSubmissions.length > 0) {
-      localStorage.setItem('admin-kyc-submissions', JSON.stringify(kycSubmissions));
-    }
-  }, [kycSubmissions]);
+  const [processing, setProcessing] = useState(false);
 
   const handleViewDetails = (kyc: KYCSubmission) => {
     setSelectedKYC(kyc);
@@ -115,31 +43,94 @@ export const KYCApprovals = () => {
     setKycToProcess(kyc);
     setRejectDialogOpen(true);
   };
-  const handleApprove = (id: string) => {
-    setKycSubmissions(prev =>
-      prev.map(kyc => kyc.id === id ? { ...kyc, status: 'approved' as const } : kyc)
-    );
-    const kyc = kycSubmissions.find(k => k.id === id);
-    if (kyc) {
-      toast.success(`KYC approved for ${kyc.address.slice(0, 6)}...${kyc.address.slice(-4)}`);
+
+  const handleApprove = async (id: string) => {
+    setProcessing(true);
+    try {
+      const kyc = kycSubmissions.find(k => k.id === id);
+      if (!kyc) return;
+
+      // Update KYC submission
+      const { error: kycError } = await supabase
+        .from('kyc_submissions')
+        .update({ 
+          status: 'approved',
+          reviewed_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (kycError) throw kycError;
+
+      // Update or create profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          wallet_address: kyc.wallet_address,
+          email: kyc.email,
+          kyc_status: 'approved'
+        }, {
+          onConflict: 'wallet_address'
+        });
+
+      if (profileError) throw profileError;
+
+      await refetch();
+      toast.success(`KYC approved for ${kyc.wallet_address.slice(0, 6)}...${kyc.wallet_address.slice(-4)}`);
+    } catch (error: any) {
+      toast.error('Failed to approve KYC');
+      console.error(error);
+    } finally {
+      setProcessing(false);
+      setApproveDialogOpen(false);
+      setKycToProcess(null);
     }
-    setApproveDialogOpen(false);
-    setKycToProcess(null);
   };
   
-  const handleReject = (id: string) => {
-    setKycSubmissions(prev =>
-      prev.map(kyc => kyc.id === id ? { ...kyc, status: 'rejected' as const } : kyc)
-    );
-    const kyc = kycSubmissions.find(k => k.id === id);
-    if (kyc) {
-      toast.error(`KYC rejected for ${kyc.address.slice(0, 6)}...${kyc.address.slice(-4)}`);
+  const handleReject = async (id: string) => {
+    setProcessing(true);
+    try {
+      const kyc = kycSubmissions.find(k => k.id === id);
+      if (!kyc) return;
+
+      // Update KYC submission
+      const { error: kycError } = await supabase
+        .from('kyc_submissions')
+        .update({ 
+          status: 'rejected',
+          reviewed_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (kycError) throw kycError;
+
+      // Update or create profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          wallet_address: kyc.wallet_address,
+          email: kyc.email,
+          kyc_status: 'rejected'
+        }, {
+          onConflict: 'wallet_address'
+        });
+
+      if (profileError) throw profileError;
+
+      await refetch();
+      toast.error(`KYC rejected for ${kyc.wallet_address.slice(0, 6)}...${kyc.wallet_address.slice(-4)}`);
+    } catch (error: any) {
+      toast.error('Failed to reject KYC');
+      console.error(error);
+    } finally {
+      setProcessing(false);
+      setRejectDialogOpen(false);
+      setKycToProcess(null);
     }
-    setRejectDialogOpen(false);
-    setKycToProcess(null);
   };
 
   const pendingKYC = kycSubmissions.filter(kyc => kyc.status === 'pending');
+  const approvedCount = kycSubmissions.filter(k => k.status === 'approved').length;
+  const rejectedCount = kycSubmissions.filter(k => k.status === 'rejected').length;
   
   return (
     <div className="flex min-h-screen">
@@ -158,46 +149,55 @@ export const KYCApprovals = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <Card className="glass p-6">
               <p className="text-sm text-muted-foreground mb-1">Pending Review</p>
-              <p className="text-3xl font-bold text-secondary">143</p>
+              <p className="text-3xl font-bold text-secondary">{pendingKYC.length}</p>
             </Card>
             <Card className="glass p-6">
-              <p className="text-sm text-muted-foreground mb-1">Approved Today</p>
-              <p className="text-3xl font-bold text-success">27</p>
+              <p className="text-sm text-muted-foreground mb-1">Approved</p>
+              <p className="text-3xl font-bold text-success">{approvedCount}</p>
             </Card>
             <Card className="glass p-6">
-              <p className="text-sm text-muted-foreground mb-1">Rejected Today</p>
-              <p className="text-3xl font-bold text-destructive">3</p>
+              <p className="text-sm text-muted-foreground mb-1">Rejected</p>
+              <p className="text-3xl font-bold text-destructive">{rejectedCount}</p>
             </Card>
             <Card className="glass p-6">
-              <p className="text-sm text-muted-foreground mb-1">Avg. Review Time</p>
-              <p className="text-3xl font-bold">8.5h</p>
+              <p className="text-sm text-muted-foreground mb-1">Total Submissions</p>
+              <p className="text-3xl font-bold">{kycSubmissions.length}</p>
             </Card>
           </div>
           
           {/* KYC Queue */}
-          <div className="space-y-4">
-            {pendingKYC.map((kyc) => (
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : pendingKYC.length === 0 ? (
+            <Card className="glass p-12 text-center">
+              <p className="text-muted-foreground">No pending KYC submissions</p>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {pendingKYC.map((kyc) => (
               <Card key={kyc.id} className="glass p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="space-y-2">
                     <div className="flex items-center gap-3">
                       <code className="text-lg font-semibold">
-                        {kyc.address.slice(0, 10)}...{kyc.address.slice(-8)}
+                        {kyc.wallet_address.slice(0, 10)}...{kyc.wallet_address.slice(-8)}
                       </code>
                       <Badge className={
-                        kyc.riskScore === 'Low' ? 'bg-success' :
-                        kyc.riskScore === 'Medium' ? 'bg-secondary' :
+                        kyc.risk_level === 'low' ? 'bg-success' :
+                        kyc.risk_level === 'medium' ? 'bg-secondary' :
                         'bg-destructive'
                       }>
-                        {kyc.riskScore} Risk
+                        {kyc.risk_level} Risk
                       </Badge>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>Submitted: {kyc.submittedAt}</span>
+                      <span>Submitted: {new Date(kyc.submitted_at).toLocaleString()}</span>
                       <span>•</span>
                       <span>Country: {kyc.country}</span>
                       <span>•</span>
-                      <span>Document: {kyc.documentType}</span>
+                      <span>Document: {kyc.document_type}</span>
                     </div>
                   </div>
                   
@@ -215,8 +215,9 @@ export const KYCApprovals = () => {
                       size="sm" 
                       className="gap-2 bg-success hover:bg-success/90"
                       onClick={() => handleApproveClick(kyc)}
+                      disabled={processing}
                     >
-                      <CheckCircle2 className="h-4 w-4" />
+                      {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                       Approve
                     </Button>
                     <Button 
@@ -224,25 +225,26 @@ export const KYCApprovals = () => {
                       variant="destructive"
                       className="gap-2"
                       onClick={() => handleRejectClick(kyc)}
+                      disabled={processing}
                     >
-                      <XCircle className="h-4 w-4" />
+                      {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
                       Reject
                     </Button>
                   </div>
                 </div>
                 
-                <div className="flex gap-2">
-                  {kyc.documents.map((doc, index) => (
-                    <div 
-                      key={index} 
-                      className="px-3 py-1.5 rounded-md bg-muted/30 text-sm"
-                    >
-                      {doc}
+                <div className="flex gap-2 flex-wrap">
+                  <div className="px-3 py-1.5 rounded-md bg-muted/30 text-sm">
+                    {kyc.document_type}: {kyc.document_number}
+                  </div>
+                  {kyc.selfie_verified && (
+                    <div className="px-3 py-1.5 rounded-md bg-success/20 text-sm">
+                      Selfie Verified
                     </div>
-                  ))}
+                  )}
                 </div>
                 
-                {kyc.riskScore === 'High' && (
+                {kyc.risk_level === 'high' && (
                   <div className="mt-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
                     <div className="flex items-start gap-2">
                       <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
@@ -256,19 +258,31 @@ export const KYCApprovals = () => {
                   </div>
                 )}
               </Card>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </main>
       </div>
 
       {/* KYC Details Modal */}
-      <KYCDetailsModal
-        kyc={selectedKYC}
-        open={detailsOpen}
-        onOpenChange={setDetailsOpen}
-        onApprove={handleApprove}
-        onReject={handleReject}
-      />
+      {selectedKYC && (
+        <KYCDetailsModal
+          kyc={{
+            id: selectedKYC.id,
+            address: selectedKYC.wallet_address,
+            submittedAt: new Date(selectedKYC.submitted_at).toLocaleString(),
+            country: selectedKYC.country,
+            documentType: selectedKYC.document_type,
+            riskScore: selectedKYC.risk_level.charAt(0).toUpperCase() + selectedKYC.risk_level.slice(1),
+            documents: [selectedKYC.document_type, selectedKYC.document_number],
+            status: selectedKYC.status as any
+          }}
+          open={detailsOpen}
+          onOpenChange={setDetailsOpen}
+          onApprove={handleApprove}
+          onReject={handleReject}
+        />
+      )}
 
       {/* Approve Confirmation Dialog */}
       <AlertDialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
@@ -277,16 +291,18 @@ export const KYCApprovals = () => {
             <AlertDialogTitle>Approve KYC Submission?</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to approve the KYC submission for{' '}
-              <code className="font-semibold">{kycToProcess?.address.slice(0, 10)}...{kycToProcess?.address.slice(-8)}</code>?
+              <code className="font-semibold">{kycToProcess?.wallet_address.slice(0, 10)}...{kycToProcess?.wallet_address.slice(-8)}</code>?
               This will grant them full access to the platform.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={processing}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => kycToProcess && handleApprove(kycToProcess.id)}
               className="bg-success hover:bg-success/90"
+              disabled={processing}
             >
+              {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Approve
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -300,16 +316,18 @@ export const KYCApprovals = () => {
             <AlertDialogTitle>Reject KYC Submission?</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to reject the KYC submission for{' '}
-              <code className="font-semibold">{kycToProcess?.address.slice(0, 10)}...{kycToProcess?.address.slice(-8)}</code>?
+              <code className="font-semibold">{kycToProcess?.wallet_address.slice(0, 10)}...{kycToProcess?.wallet_address.slice(-8)}</code>?
               They will need to resubmit their documents.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={processing}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => kycToProcess && handleReject(kycToProcess.id)}
               className="bg-destructive hover:bg-destructive/90"
+              disabled={processing}
             >
+              {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Reject
             </AlertDialogAction>
           </AlertDialogFooter>

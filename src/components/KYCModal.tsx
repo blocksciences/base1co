@@ -45,20 +45,32 @@ export const KYCModal = ({ open, onOpenChange, walletAddress }: KYCModalProps) =
 
     setSubmitting(true);
     try {
+      const validatedData = validation.data;
+      
       const { error } = await supabase
         .from('kyc_submissions')
         .insert({
           wallet_address: walletAddress,
-          full_name: formData.fullName,
-          email: formData.email,
-          country: formData.country,
-          document_type: formData.documentType,
-          document_number: formData.documentNumber,
-          status: 'pending',
-          risk_level: 'low',
+          full_name: validatedData.fullName,
+          email: validatedData.email,
+          country: validatedData.country,
+          document_type: validatedData.documentType,
+          document_number: validatedData.documentNumber,
+          status: 'pending'
         });
 
       if (error) throw error;
+
+      // Create or update profile
+      await supabase
+        .from('profiles')
+        .upsert({
+          wallet_address: walletAddress,
+          email: validatedData.email,
+          kyc_status: 'pending'
+        }, {
+          onConflict: 'wallet_address'
+        });
 
       toast.success('KYC application submitted successfully');
       onOpenChange(false);
