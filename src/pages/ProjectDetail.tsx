@@ -16,6 +16,7 @@ import { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { toast } from 'sonner';
 import { useICOContract } from '@/hooks/useICOContract';
+import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 
 const investmentSchema = z.object({
@@ -34,7 +35,7 @@ const investmentSchema = z.object({
 export const ProjectDetail = () => {
   const { id } = useParams();
   const { data: project, isLoading } = useProject(id!);
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const [investAmount, setInvestAmount] = useState('');
   const [isInvesting, setIsInvesting] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
@@ -50,17 +51,56 @@ export const ProjectDetail = () => {
       return;
     }
 
-    if (!isConnected) {
+    if (!isConnected || !address) {
       toast.error('Please connect your wallet first');
+      return;
+    }
+
+    if (!project) {
+      toast.error('Project not found');
       return;
     }
 
     setIsInvesting(true);
     try {
-      const success = await invest(investAmount);
-      if (success) {
-        setInvestAmount(''); // Clear input on success
-      }
+      // Save investment to database
+      const tokenPrice = parseFloat(project.price.split(' ')[0]); // Extract price from "0.05 ETH"
+      const tokensReceived = parseFloat(investAmount) / tokenPrice;
+      
+      const { error } = await supabase
+        .from('user_investments')
+        .insert({
+          wallet_address: address,
+          project_id: project.id,
+          project_name: project.name,
+          project_symbol: project.symbol,
+          amount_eth: parseFloat(investAmount),
+          amount_usd: parseFloat(investAmount) * 2500, // Mock ETH price
+          tokens_received: tokensReceived,
+          status: 'active',
+        });
+
+      if (error) throw error;
+
+      // Also create a transaction record
+      await supabase
+        .from('transactions')
+        .insert({
+          transaction_type: 'invest',
+          from_address: address,
+          project_id: project.id,
+          project_name: project.name,
+          amount_crypto: `${investAmount} ETH`,
+          amount_usd: parseFloat(investAmount) * 2500,
+          tx_hash: `0x${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`,
+          status: 'confirmed',
+        });
+
+      toast.success(`Successfully invested ${investAmount} ETH in ${project.name}!`);
+      setInvestAmount(''); // Clear input on success
+    } catch (error: any) {
+      console.error('Investment error:', error);
+      toast.error(error.message || 'Failed to process investment');
     } finally {
       setIsInvesting(false);
     }

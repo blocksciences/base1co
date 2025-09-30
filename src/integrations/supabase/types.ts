@@ -358,6 +358,56 @@ export type Database = {
           },
         ]
       }
+      user_investments: {
+        Row: {
+          amount_eth: number
+          amount_usd: number | null
+          created_at: string
+          id: string
+          project_id: string | null
+          project_name: string
+          project_symbol: string
+          status: string
+          tokens_received: number
+          updated_at: string
+          wallet_address: string
+        }
+        Insert: {
+          amount_eth: number
+          amount_usd?: number | null
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          project_name: string
+          project_symbol: string
+          status?: string
+          tokens_received: number
+          updated_at?: string
+          wallet_address: string
+        }
+        Update: {
+          amount_eth?: number
+          amount_usd?: number | null
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          project_name?: string
+          project_symbol?: string
+          status?: string
+          tokens_received?: number
+          updated_at?: string
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_investments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string

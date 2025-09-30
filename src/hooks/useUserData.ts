@@ -47,7 +47,7 @@ export function useUserInvestments() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setInvestments(data || []);
+      setInvestments((data as any) || []);
       setError(null);
     } catch (err: any) {
       setError(err.message);
@@ -87,7 +87,7 @@ export function useUserTransactions() {
         .limit(20);
 
       if (error) throw error;
-      setTransactions(data || []);
+      setTransactions((data as any) || []);
       setError(null);
     } catch (err: any) {
       setError(err.message);
