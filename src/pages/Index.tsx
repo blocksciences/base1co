@@ -153,9 +153,11 @@ const Index = () => {
               Join the future of fundraising. Connect your wallet and start exploring 
               groundbreaking blockchain projects today.
             </p>
-            <Button size="lg" className="h-14 px-8 text-lg bg-gradient-primary hover:opacity-90">
-              Get Started
-            </Button>
+            <Link to="/projects">
+              <Button size="lg" className="h-14 px-8 text-lg bg-gradient-primary hover:opacity-90">
+                Get Started
+              </Button>
+            </Link>
           </div>
         </Card>
       </section>
