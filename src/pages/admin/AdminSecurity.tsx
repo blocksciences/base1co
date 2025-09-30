@@ -11,37 +11,116 @@ import {
   Key,
   Activity
 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
+import { SecurityAlertModal } from '@/components/admin/SecurityAlertModal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
+interface SecurityAlert {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  address: string;
+  timestamp: string;
+  status: string;
+  dismissed?: boolean;
+}
+
+const INITIAL_ALERTS: SecurityAlert[] = [
+  {
+    id: '1',
+    type: 'high',
+    title: 'Unusual Investment Pattern Detected',
+    description: 'Multiple large investments from new wallet in short time period',
+    address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+    timestamp: '2025-09-30 14:23:15',
+    status: 'investigating',
+    dismissed: false
+  },
+  {
+    id: '2',
+    type: 'medium',
+    title: 'Failed Login Attempts',
+    description: '5 failed login attempts from suspicious IP address',
+    address: '192.168.1.100',
+    timestamp: '2025-09-30 13:45:32',
+    status: 'blocked',
+    dismissed: false
+  },
+  {
+    id: '3',
+    type: 'low',
+    title: 'API Rate Limit Exceeded',
+    description: 'Wallet exceeded API rate limits',
+    address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+    timestamp: '2025-09-30 12:10:45',
+    status: 'resolved',
+    dismissed: false
+  },
+];
 
 export const AdminSecurity = () => {
-  const securityAlerts = [
-    {
-      id: '1',
-      type: 'high',
-      title: 'Unusual Investment Pattern Detected',
-      description: 'Multiple large investments from new wallet in short time period',
-      address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-      timestamp: '2025-09-30 14:23:15',
-      status: 'investigating'
-    },
-    {
-      id: '2',
-      type: 'medium',
-      title: 'Failed Login Attempts',
-      description: '5 failed login attempts from suspicious IP address',
-      address: '192.168.1.100',
-      timestamp: '2025-09-30 13:45:32',
-      status: 'blocked'
-    },
-    {
-      id: '3',
-      type: 'low',
-      title: 'API Rate Limit Exceeded',
-      description: 'Wallet exceeded API rate limits',
-      address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-      timestamp: '2025-09-30 12:10:45',
-      status: 'resolved'
-    },
-  ];
+  const [alerts, setAlerts] = useState<SecurityAlert[]>([]);
+  const [selectedAlert, setSelectedAlert] = useState<SecurityAlert | null>(null);
+  const [investigateOpen, setInvestigateOpen] = useState(false);
+  const [dismissDialogOpen, setDismissDialogOpen] = useState(false);
+  const [alertToDismiss, setAlertToDismiss] = useState<SecurityAlert | null>(null);
+
+  // Initialize from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('admin-security-alerts');
+    if (stored) {
+      try {
+        setAlerts(JSON.parse(stored));
+      } catch {
+        setAlerts(INITIAL_ALERTS);
+      }
+    } else {
+      setAlerts(INITIAL_ALERTS);
+    }
+  }, []);
+
+  // Save to localStorage
+  useEffect(() => {
+    if (alerts.length > 0) {
+      localStorage.setItem('admin-security-alerts', JSON.stringify(alerts));
+    }
+  }, [alerts]);
+
+  const handleInvestigate = (alert: SecurityAlert) => {
+    setSelectedAlert(alert);
+    setInvestigateOpen(true);
+  };
+
+  const handleDismissClick = (alert: SecurityAlert) => {
+    setAlertToDismiss(alert);
+    setDismissDialogOpen(true);
+  };
+
+  const handleDismissConfirm = (id: string) => {
+    setAlerts(prev => prev.map(alert => 
+      alert.id === id ? { ...alert, dismissed: true } : alert
+    ));
+    const alert = alerts.find(a => a.id === id);
+    if (alert) {
+      toast.success(`Alert "${alert.title}" dismissed`);
+    }
+    setDismissDialogOpen(false);
+    setAlertToDismiss(null);
+  };
+
+  const activeAlerts = alerts.filter(alert => !alert.dismissed);
+  const securityAlerts = activeAlerts;
   
   const contractAudits = [
     {
@@ -94,7 +173,7 @@ export const AdminSecurity = () => {
                 <AlertTriangle className="h-5 w-5 text-destructive" />
                 <p className="text-sm text-muted-foreground">Active Alerts</p>
               </div>
-              <p className="text-3xl font-bold text-destructive">3</p>
+              <p className="text-3xl font-bold text-destructive">{activeAlerts.length}</p>
             </Card>
             <Card className="glass p-6">
               <div className="flex items-center gap-3 mb-2">
@@ -153,10 +232,18 @@ export const AdminSecurity = () => {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleInvestigate(alert)}
+                      >
                         Investigate
                       </Button>
-                      <Button size="sm" variant="ghost">
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={() => handleDismissClick(alert)}
+                      >
                         Dismiss
                       </Button>
                     </div>
@@ -253,6 +340,35 @@ export const AdminSecurity = () => {
           </Card>
         </main>
       </div>
+
+      {/* Investigation Modal */}
+      <SecurityAlertModal
+        alert={selectedAlert}
+        open={investigateOpen}
+        onOpenChange={setInvestigateOpen}
+        onDismiss={handleDismissConfirm}
+      />
+
+      {/* Dismiss Confirmation Dialog */}
+      <AlertDialog open={dismissDialogOpen} onOpenChange={setDismissDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Dismiss Security Alert?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to dismiss the alert "{alertToDismiss?.title}"?
+              Make sure you've properly investigated and resolved the issue before dismissing.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => alertToDismiss && handleDismissConfirm(alertToDismiss.id)}
+            >
+              Dismiss Alert
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
