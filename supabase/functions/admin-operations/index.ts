@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-wallet-address',
 };
 
 serve(async (req) => {
@@ -13,54 +13,69 @@ serve(async (req) => {
   }
 
   try {
-    // Create client for auth verification (with user's JWT)
-    const authClient = createClient(
+    // Create admin client for privileged operations (with service role key)
+    const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get the current user
-    const {
-      data: { user },
-      error: userError,
-    } = await authClient.auth.getUser();
+    // Try to authenticate with JWT first (traditional auth)
+    let isAuthenticated = false;
+    let userId = null;
 
-    if (userError || !user) {
-      console.error('Auth error:', userError);
+    const authHeader = req.headers.get('Authorization');
+    if (authHeader) {
+      const authClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        {
+          global: {
+            headers: { Authorization: authHeader },
+          },
+        }
+      );
+
+      const { data: { user }, error: userError } = await authClient.auth.getUser();
+      
+      if (!userError && user) {
+        // Check if user is admin via user_roles
+        const { data: isAdminData } = await supabaseClient
+          .rpc('is_admin', { check_user_id: user.id });
+        
+        if (isAdminData) {
+          isAuthenticated = true;
+          userId = user.id;
+        }
+      }
+    }
+
+    // If JWT auth failed, try wallet-based authentication
+    if (!isAuthenticated) {
+      const walletAddress = req.headers.get('x-wallet-address');
+      if (walletAddress) {
+        const { data: walletAdmin } = await supabaseClient
+          .from('admin_wallets')
+          .select('wallet_address')
+          .eq('wallet_address', walletAddress)
+          .single();
+
+        if (walletAdmin) {
+          isAuthenticated = true;
+          console.log('Authenticated via wallet:', walletAddress);
+        }
+      }
+    }
+
+    if (!isAuthenticated) {
+      console.error('Authentication failed - no valid JWT or wallet address');
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Unauthorized - Admin access required' }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 401,
         }
       );
     }
-
-    // Check if user is admin
-    const { data: isAdminData, error: adminError } = await authClient
-      .rpc('is_admin', { check_user_id: user.id });
-
-    if (adminError || !isAdminData) {
-      console.error('Admin check error:', adminError);
-      return new Response(
-        JSON.stringify({ error: 'Forbidden - Admin access required' }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 403,
-        }
-      );
-    }
-
-    // Create admin client for privileged operations (with service role key)
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
 
     const { operation, targetUserId, targetEmail, targetWallet, role } = await req.json();
 
@@ -103,7 +118,7 @@ serve(async (req) => {
             .insert({
               user_id: matchedUser.id,
               role: 'admin',
-              created_by: user.id,
+              created_by: userId,
             });
 
           if (insertError) {
@@ -126,7 +141,7 @@ serve(async (req) => {
             .from('admin_wallets')
             .insert({
               wallet_address: targetWallet,
-              created_by: user.email || 'system',
+              created_by: req.headers.get('x-wallet-address') || 'system',
             });
 
           if (insertError) {
@@ -192,13 +207,13 @@ serve(async (req) => {
     await supabaseClient
       .from('admin_audit_log')
       .insert({
-        admin_user_id: user.id,
+        admin_user_id: userId,
         action: auditAction,
         target_user_id: targetUserId,
         details: auditDetails,
       });
 
-    console.log(`Admin operation completed: ${auditAction} by ${user.id}`);
+    console.log(`Admin operation completed: ${auditAction}`);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

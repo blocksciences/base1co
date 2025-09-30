@@ -10,6 +10,7 @@ import { Shield, UserPlus, Trash2, Copy, Check, AlertTriangle, Loader2 } from 'l
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
+import { useAccount } from 'wagmi';
 
 const emailSchema = z.string().email('Invalid email address');
 const walletSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid wallet address');
@@ -29,6 +30,7 @@ interface AdminWallet {
 }
 
 export default function AdminManagement() {
+  const { address } = useAccount();
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [walletAdmins, setWalletAdmins] = useState<AdminWallet[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,6 +98,7 @@ export default function AdminManagement() {
     try {
       const { data, error } = await supabase.functions.invoke('admin-operations', {
         body,
+        headers: address ? { 'x-wallet-address': address } : {},
       });
 
       if (error) throw error;
@@ -128,6 +131,7 @@ export default function AdminManagement() {
           operation: 'remove_admin',
           targetUserId: userId,
         },
+        headers: address ? { 'x-wallet-address': address } : {},
       });
 
       if (error) throw error;
