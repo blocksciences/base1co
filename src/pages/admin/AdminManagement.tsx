@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 
 const emailSchema = z.string().email('Invalid email address');
+const walletSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid wallet address');
 
 interface AdminUser {
   id: string;
@@ -20,12 +21,22 @@ interface AdminUser {
   created_at: string;
 }
 
+interface AdminWallet {
+  id: string;
+  wallet_address: string;
+  created_at: string;
+  created_by?: string;
+}
+
 export default function AdminManagement() {
   const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [walletAdmins, setWalletAdmins] = useState<AdminWallet[]>([]);
   const [loading, setLoading] = useState(true);
   const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminWallet, setNewAdminWallet] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [addingAdmin, setAddingAdmin] = useState(false);
+  const [addMethod, setAddMethod] = useState<'email' | 'wallet'>('wallet');
 
   useEffect(() => {
     loadAdmins();
@@ -33,15 +44,24 @@ export default function AdminManagement() {
 
   const loadAdmins = async () => {
     try {
-      const { data, error } = await supabase
+      // Load user-based admins
+      const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('id, user_id, created_at')
         .eq('role', 'admin')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (roleError) throw roleError;
+      setAdmins(roleData || []);
 
-      setAdmins(data || []);
+      // Load wallet-based admins
+      const { data: walletData, error: walletError } = await supabase
+        .from('admin_wallets')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (walletError) throw walletError;
+      setWalletAdmins(walletData || []);
     } catch (error) {
       console.error('Error loading admins:', error);
       toast.error('Failed to load admin list');
@@ -51,27 +71,38 @@ export default function AdminManagement() {
   };
 
   const handleAddAdmin = async () => {
-    // Validate email
-    try {
-      emailSchema.parse(newAdminEmail);
-    } catch (error) {
-      toast.error('Please enter a valid email address');
-      return;
+    let body: any = { operation: 'add_admin' };
+
+    // Validate based on add method
+    if (addMethod === 'email') {
+      try {
+        emailSchema.parse(newAdminEmail);
+        body.targetEmail = newAdminEmail.toLowerCase().trim();
+      } catch (error) {
+        toast.error('Please enter a valid email address');
+        return;
+      }
+    } else {
+      try {
+        walletSchema.parse(newAdminWallet);
+        body.targetWallet = newAdminWallet.trim();
+      } catch (error) {
+        toast.error('Please enter a valid wallet address (0x...)');
+        return;
+      }
     }
 
     setAddingAdmin(true);
     try {
       const { data, error } = await supabase.functions.invoke('admin-operations', {
-        body: {
-          operation: 'add_admin',
-          targetEmail: newAdminEmail.toLowerCase().trim(),
-        },
+        body,
       });
 
       if (error) throw error;
 
       toast.success('Admin added successfully');
       setNewAdminEmail('');
+      setNewAdminWallet('');
       loadAdmins();
     } catch (error: any) {
       console.error('Error adding admin:', error);
@@ -144,7 +175,7 @@ export default function AdminManagement() {
                 <span className="text-sm text-muted-foreground">Total Admins</span>
                 <Shield className="h-4 w-4 text-primary" />
               </div>
-              <p className="text-2xl font-bold">{admins.length}</p>
+              <p className="text-2xl font-bold">{admins.length + walletAdmins.length}</p>
             </Card>
 
             <Card className="glass p-6">
@@ -152,7 +183,7 @@ export default function AdminManagement() {
                 <span className="text-sm text-muted-foreground">Active Now</span>
                 <div className="h-2 w-2 rounded-full bg-green-500" />
               </div>
-              <p className="text-2xl font-bold">{admins.length}</p>
+              <p className="text-2xl font-bold">{admins.length + walletAdmins.length}</p>
             </Card>
 
             <Card className="glass p-6">
@@ -169,17 +200,46 @@ export default function AdminManagement() {
 
           <Card className="glass p-6">
             <h2 className="text-xl font-semibold mb-4">Add New Administrator</h2>
+            
+            {/* Add Method Toggle */}
+            <div className="flex gap-2 mb-4">
+              <Button
+                variant={addMethod === 'wallet' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setAddMethod('wallet')}
+              >
+                Wallet Address
+              </Button>
+              <Button
+                variant={addMethod === 'email' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setAddMethod('email')}
+              >
+                Email Address
+              </Button>
+            </div>
+
+            {/* Input based on method */}
             <div className="flex gap-4">
-              <Input
-                placeholder="Enter user email address"
-                value={newAdminEmail}
-                onChange={(e) => setNewAdminEmail(e.target.value)}
-                disabled={addingAdmin}
-                type="email"
-              />
+              {addMethod === 'wallet' ? (
+                <Input
+                  placeholder="Enter wallet address (0x...)"
+                  value={newAdminWallet}
+                  onChange={(e) => setNewAdminWallet(e.target.value)}
+                  disabled={addingAdmin}
+                />
+              ) : (
+                <Input
+                  placeholder="Enter user email address"
+                  value={newAdminEmail}
+                  onChange={(e) => setNewAdminEmail(e.target.value)}
+                  disabled={addingAdmin}
+                  type="email"
+                />
+              )}
               <Button
                 onClick={handleAddAdmin}
-                disabled={!newAdminEmail || addingAdmin}
+                disabled={(addMethod === 'email' ? !newAdminEmail : !newAdminWallet) || addingAdmin}
               >
                 {addingAdmin ? (
                   <>
@@ -195,7 +255,9 @@ export default function AdminManagement() {
               </Button>
             </div>
             <p className="text-sm text-muted-foreground mt-2">
-              Enter the email of an existing user to grant them admin access
+              {addMethod === 'wallet' 
+                ? 'Enter a wallet address to grant admin access'
+                : 'Enter the email of an existing user to grant them admin access'}
             </p>
           </Card>
 
@@ -205,13 +267,48 @@ export default function AdminManagement() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : admins.length === 0 ? (
+            ) : (admins.length === 0 && walletAdmins.length === 0) ? (
               <div className="text-center py-12 text-muted-foreground">
                 <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No administrators found</p>
               </div>
             ) : (
               <div className="space-y-4">
+                {/* Wallet-based Admins */}
+                {walletAdmins.map((admin) => (
+                  <div
+                    key={admin.id}
+                    className="flex items-center justify-between p-4 rounded-lg border border-border bg-card"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                        <Shield className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-mono text-sm">{admin.wallet_address}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Added: {new Date(admin.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">Wallet Admin</Badge>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCopyId(admin.wallet_address)}
+                      >
+                        {copiedId === admin.wallet_address ? (
+                          <Check className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* User-based Admins */}
                 {admins.map((admin) => (
                   <div
                     key={admin.id}
@@ -229,7 +326,7 @@ export default function AdminManagement() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline">Admin</Badge>
+                      <Badge variant="outline">User Admin</Badge>
                       <Button
                         variant="ghost"
                         size="sm"

@@ -15,7 +15,7 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
         global: {
           headers: { Authorization: req.headers.get('Authorization')! },
@@ -55,7 +55,7 @@ serve(async (req) => {
       );
     }
 
-    const { operation, targetUserId, targetEmail, role } = await req.json();
+    const { operation, targetUserId, targetEmail, targetWallet, role } = await req.json();
 
     let result;
     let auditAction;
@@ -63,46 +63,88 @@ serve(async (req) => {
 
     switch (operation) {
       case 'add_admin':
-        // Find user by email
-        const { data: targetUser, error: findError } = await supabaseClient
-          .from('auth.users')
-          .select('id')
-          .eq('email', targetEmail)
-          .single();
+        if (targetEmail) {
+          // Add admin by email (traditional user-based)
+          const { data: targetUser, error: findError } = await supabaseClient.auth.admin.listUsers();
 
-        if (findError || !targetUser) {
+          if (findError) {
+            console.error('Error listing users:', findError);
+            return new Response(
+              JSON.stringify({ error: 'Failed to query users' }),
+              {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 500,
+              }
+            );
+          }
+
+          const matchedUser = targetUser?.users?.find((u: any) => u.email?.toLowerCase() === targetEmail.toLowerCase());
+
+          if (!matchedUser) {
+            return new Response(
+              JSON.stringify({ error: 'User not found with that email' }),
+              {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 404,
+              }
+            );
+          }
+
+          // Add admin role
+          const { error: insertError } = await supabaseClient
+            .from('user_roles')
+            .insert({
+              user_id: matchedUser.id,
+              role: 'admin',
+              created_by: user.id,
+            });
+
+          if (insertError) {
+            console.error('Error adding admin:', insertError);
+            return new Response(
+              JSON.stringify({ error: insertError.message || 'Failed to add admin role' }),
+              {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 500,
+              }
+            );
+          }
+
+          auditAction = 'add_admin';
+          auditDetails = { email: targetEmail, user_id: matchedUser.id };
+          result = { success: true, message: 'Admin role added successfully' };
+        } else if (targetWallet) {
+          // Add admin by wallet address
+          const { error: insertError } = await supabaseClient
+            .from('admin_wallets')
+            .insert({
+              wallet_address: targetWallet,
+              created_by: user.email || 'system',
+            });
+
+          if (insertError) {
+            console.error('Error adding wallet admin:', insertError);
+            return new Response(
+              JSON.stringify({ error: insertError.message || 'Failed to add admin wallet' }),
+              {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 500,
+              }
+            );
+          }
+
+          auditAction = 'add_admin_wallet';
+          auditDetails = { wallet_address: targetWallet };
+          result = { success: true, message: 'Admin wallet added successfully' };
+        } else {
           return new Response(
-            JSON.stringify({ error: 'User not found with that email' }),
+            JSON.stringify({ error: 'Either email or wallet address is required' }),
             {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 404,
+              status: 400,
             }
           );
         }
-
-        // Add admin role
-        const { error: insertError } = await supabaseClient
-          .from('user_roles')
-          .insert({
-            user_id: targetUser.id,
-            role: 'admin',
-            created_by: user.id,
-          });
-
-        if (insertError) {
-          console.error('Error adding admin:', insertError);
-          return new Response(
-            JSON.stringify({ error: 'Failed to add admin role' }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 500,
-            }
-          );
-        }
-
-        auditAction = 'add_admin';
-        auditDetails = { email: targetEmail, user_id: targetUser.id };
-        result = { success: true, message: 'Admin role added successfully' };
         break;
 
       case 'remove_admin':
