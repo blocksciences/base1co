@@ -12,6 +12,7 @@ import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
 import Dashboard from "./pages/Dashboard";
 import Staking from "./pages/Staking";
+import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProjects from "./pages/admin/AdminProjects";
 import CreateICO from "./pages/admin/CreateICO";
@@ -42,11 +43,12 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/projects" element={<Projects />} />
-              <Route path="/project/:id" element={<ProjectDetail />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/staking" element={<Staking />} />
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/projects" element={<Projects />} />
+            <Route path="/project/:id" element={<ProjectDetail />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/staking" element={<Staking />} />
               
               {/* Admin Routes - Protected */}
               <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />

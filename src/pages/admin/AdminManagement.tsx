@@ -1,275 +1,308 @@
+import { useState, useEffect } from 'react';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Shield, Trash2, Plus, AlertTriangle, Copy, Check } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Shield, UserPlus, Trash2, Copy, Check, AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { ADMIN_ADDRESSES } from '@/config/admins';
+import { supabase } from '@/integrations/supabase/client';
+import { z } from 'zod';
 
-const STORAGE_KEY = 'launchbase_admins';
+const emailSchema = z.string().email('Invalid email address');
 
-export const AdminManagement = () => {
-  const [admins, setAdmins] = useState<string[]>([]);
-  const [newAddress, setNewAddress] = useState('');
-  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
+interface AdminUser {
+  id: string;
+  user_id: string;
+  email?: string;
+  created_at: string;
+}
+
+export default function AdminManagement() {
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [addingAdmin, setAddingAdmin] = useState(false);
 
   useEffect(() => {
-    // Load admins from localStorage, fallback to hardcoded list
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setAdmins(parsed);
-      } catch (e) {
-        setAdmins([...ADMIN_ADDRESSES]);
-      }
-    } else {
-      setAdmins([...ADMIN_ADDRESSES]);
-    }
+    loadAdmins();
   }, []);
 
-  const saveAdmins = (newAdmins: string[]) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newAdmins));
-    setAdmins(newAdmins);
+  const loadAdmins = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('id, user_id, created_at')
+        .eq('role', 'admin')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setAdmins(data || []);
+    } catch (error) {
+      console.error('Error loading admins:', error);
+      toast.error('Failed to load admin list');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleAddAdmin = () => {
-    if (!newAddress) {
-      toast.error('Please enter a wallet address');
+  const handleAddAdmin = async () => {
+    // Validate email
+    try {
+      emailSchema.parse(newAdminEmail);
+    } catch (error) {
+      toast.error('Please enter a valid email address');
       return;
     }
 
-    // Basic address validation
-    if (!newAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
-      toast.error('Invalid Ethereum address format');
-      return;
+    setAddingAdmin(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-operations', {
+        body: {
+          operation: 'add_admin',
+          targetEmail: newAdminEmail.toLowerCase().trim(),
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success('Admin added successfully');
+      setNewAdminEmail('');
+      loadAdmins();
+    } catch (error: any) {
+      console.error('Error adding admin:', error);
+      toast.error(error.message || 'Failed to add admin');
+    } finally {
+      setAddingAdmin(false);
     }
-
-    const lowerAddress = newAddress.toLowerCase();
-
-    if (admins.includes(lowerAddress)) {
-      toast.error('This address is already an admin');
-      return;
-    }
-
-    const updatedAdmins = [...admins, lowerAddress];
-    saveAdmins(updatedAdmins);
-    setNewAddress('');
-    toast.success('Admin address added successfully');
   };
 
-  const handleRemoveAdmin = (address: string) => {
+  const handleRemoveAdmin = async (userId: string) => {
     if (admins.length <= 1) {
       toast.error('Cannot remove the last admin');
       return;
     }
 
-    const updatedAdmins = admins.filter(a => a !== address);
-    saveAdmins(updatedAdmins);
-    toast.success('Admin address removed successfully');
-  };
+    if (!confirm('Are you sure you want to remove this admin?')) {
+      return;
+    }
 
-  const handleCopyAddress = (address: string) => {
-    navigator.clipboard.writeText(address);
-    setCopiedAddress(address);
-    toast.success('Address copied to clipboard');
-    setTimeout(() => setCopiedAddress(null), 2000);
-  };
+    try {
+      const { error } = await supabase.functions.invoke('admin-operations', {
+        body: {
+          operation: 'remove_admin',
+          targetUserId: userId,
+        },
+      });
 
-  const handleResetToDefaults = () => {
-    if (confirm('Reset to default admin addresses? This will remove all custom admins.')) {
-      saveAdmins([...ADMIN_ADDRESSES]);
-      toast.success('Reset to default admins');
+      if (error) throw error;
+
+      toast.success('Admin removed successfully');
+      loadAdmins();
+    } catch (error: any) {
+      console.error('Error removing admin:', error);
+      toast.error(error.message || 'Failed to remove admin');
     }
   };
 
+  const handleCopyId = (id: string) => {
+    navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    toast.success('User ID copied to clipboard');
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-background">
       <AdminSidebar />
       
       <div className="flex-1">
         <AdminHeader />
         
-        <main className="p-6 space-y-6">
+        <main className="p-8 space-y-8">
           <div>
             <h1 className="text-3xl font-bold mb-2">Admin Management</h1>
-            <p className="text-muted-foreground">Manage platform administrator wallet addresses</p>
+            <p className="text-muted-foreground">
+              Manage administrator access and permissions
+            </p>
           </div>
 
-          {/* Security Warning */}
-          <Card className="glass p-6 bg-destructive/5 border-destructive/20">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-6 w-6 text-destructive flex-shrink-0 mt-0.5" />
-              <div className="space-y-2">
-                <h3 className="font-bold text-destructive">Security Notice</h3>
-                <p className="text-sm text-muted-foreground">
-                  Admin addresses are currently stored in browser localStorage. For production use:
-                </p>
-                <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
-                  <li>Move admin management to a secure backend database</li>
-                  <li>Implement multi-signature controls for adding/removing admins</li>
-                  <li>Add audit logging for all admin changes</li>
-                  <li>Use role-based access control (RBAC)</li>
-                </ul>
-              </div>
-            </div>
-          </Card>
+          <Alert>
+            <Shield className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Secure Admin Management:</strong> Admin roles are now stored securely in the database with proper RLS policies. All admin operations are audited.
+            </AlertDescription>
+          </Alert>
 
-          {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="glass p-6">
-              <div className="flex items-center gap-3 mb-2">
-                <Shield className="h-5 w-5 text-primary" />
-                <p className="text-sm text-muted-foreground">Total Admins</p>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-muted-foreground">Total Admins</span>
+                <Shield className="h-4 w-4 text-primary" />
               </div>
-              <p className="text-3xl font-bold">{admins.length}</p>
+              <p className="text-2xl font-bold">{admins.length}</p>
             </Card>
+
             <Card className="glass p-6">
-              <div className="flex items-center gap-3 mb-2">
-                <Shield className="h-5 w-5 text-success" />
-                <p className="text-sm text-muted-foreground">Active Sessions</p>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-muted-foreground">Active Now</span>
+                <div className="h-2 w-2 rounded-full bg-green-500" />
               </div>
-              <p className="text-3xl font-bold">1</p>
+              <p className="text-2xl font-bold">{admins.length}</p>
             </Card>
+
             <Card className="glass p-6">
-              <div className="flex items-center gap-3 mb-2">
-                <Shield className="h-5 w-5 text-secondary" />
-                <p className="text-sm text-muted-foreground">Default Admins</p>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-muted-foreground">Last Added</span>
               </div>
-              <p className="text-3xl font-bold">{ADMIN_ADDRESSES.length}</p>
+              <p className="text-sm text-muted-foreground">
+                {admins[0]
+                  ? new Date(admins[0].created_at).toLocaleDateString()
+                  : 'N/A'}
+              </p>
             </Card>
           </div>
 
-          {/* Add New Admin */}
-          <Card className="glass p-6 space-y-4">
-            <h2 className="text-xl font-bold">Add New Administrator</h2>
-            
-            <div className="flex gap-3">
+          <Card className="glass p-6">
+            <h2 className="text-xl font-semibold mb-4">Add New Administrator</h2>
+            <div className="flex gap-4">
               <Input
-                placeholder="0x..."
-                value={newAddress}
-                onChange={(e) => setNewAddress(e.target.value)}
-                className="flex-1"
-                pattern="^0x[a-fA-F0-9]{40}$"
+                placeholder="Enter user email address"
+                value={newAdminEmail}
+                onChange={(e) => setNewAdminEmail(e.target.value)}
+                disabled={addingAdmin}
+                type="email"
               />
-              <Button 
+              <Button
                 onClick={handleAddAdmin}
-                className="bg-gradient-primary gap-2"
+                disabled={!newAdminEmail || addingAdmin}
               >
-                <Plus className="h-4 w-4" />
-                Add Admin
+                {addingAdmin ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Add Admin
+                  </>
+                )}
               </Button>
             </div>
-            
-            <p className="text-xs text-muted-foreground">
-              Enter a valid Ethereum wallet address. The address will be converted to lowercase automatically.
+            <p className="text-sm text-muted-foreground mt-2">
+              Enter the email of an existing user to grant them admin access
             </p>
           </Card>
 
-          {/* Current Admins */}
-          <Card className="glass p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold">Current Administrators</h2>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleResetToDefaults}
-              >
-                Reset to Defaults
-              </Button>
-            </div>
-
-            <div className="space-y-3">
-              {admins.map((address, index) => {
-                const isDefault = ADMIN_ADDRESSES.includes(address);
-                return (
-                  <div 
-                    key={address}
-                    className="flex items-center justify-between p-4 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors"
+          <Card className="glass p-6">
+            <h2 className="text-xl font-semibold mb-4">Current Administrators</h2>
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : admins.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No administrators found</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {admins.map((admin) => (
+                  <div
+                    key={admin.id}
+                    className="flex items-center justify-between p-4 rounded-lg border border-border bg-card"
                   >
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center font-bold">
-                        {index + 1}
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                        <Shield className="h-5 w-5 text-primary" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <code className="text-sm font-mono">
-                            {address}
-                          </code>
-                          {isDefault && (
-                            <Badge variant="outline" className="text-xs">
-                              Default
-                            </Badge>
-                          )}
-                        </div>
+                      <div>
+                        <p className="font-mono text-sm">{admin.user_id}</p>
                         <p className="text-xs text-muted-foreground">
-                          Added: {isDefault ? 'System default' : 'Custom admin'}
+                          Added: {new Date(admin.created_at).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
-                    
                     <div className="flex items-center gap-2">
+                      <Badge variant="outline">Admin</Badge>
                       <Button
-                        size="icon"
                         variant="ghost"
-                        onClick={() => handleCopyAddress(address)}
-                        title="Copy address"
+                        size="sm"
+                        onClick={() => handleCopyId(admin.user_id)}
                       >
-                        {copiedAddress === address ? (
-                          <Check className="h-4 w-4 text-success" />
+                        {copiedId === admin.user_id ? (
+                          <Check className="h-4 w-4 text-green-500" />
                         ) : (
                           <Copy className="h-4 w-4" />
                         )}
                       </Button>
                       <Button
-                        size="icon"
                         variant="ghost"
-                        onClick={() => handleRemoveAdmin(address)}
+                        size="sm"
+                        onClick={() => handleRemoveAdmin(admin.user_id)}
                         disabled={admins.length <= 1}
-                        title={admins.length <= 1 ? "Cannot remove last admin" : "Remove admin"}
-                        className="text-destructive hover:text-destructive"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-
-            {admins.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                No administrators configured
+                ))}
               </div>
             )}
           </Card>
 
-          {/* Admin Permissions Info */}
           <Card className="glass p-6">
-            <h2 className="text-xl font-bold mb-4">Admin Permissions</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 rounded-lg bg-muted/20">
-                <h3 className="font-semibold mb-2">Full Access</h3>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Create and manage ICO projects</li>
-                  <li>• Approve/reject KYC submissions</li>
-                  <li>• View all user data</li>
-                  <li>• Monitor transactions</li>
-                </ul>
+            <h2 className="text-xl font-semibold mb-4">Admin Permissions</h2>
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="h-2 w-2 rounded-full bg-primary mt-2" />
+                <div>
+                  <p className="font-medium">Full Dashboard Access</p>
+                  <p className="text-sm text-muted-foreground">
+                    Access to all admin panels and analytics
+                  </p>
+                </div>
               </div>
-              
-              <div className="p-4 rounded-lg bg-muted/20">
-                <h3 className="font-semibold mb-2">System Control</h3>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Modify platform settings</li>
-                  <li>• Access security center</li>
-                  <li>• View analytics dashboard</li>
-                  <li>• Manage admin permissions</li>
-                </ul>
+              <div className="flex items-start gap-3">
+                <div className="h-2 w-2 rounded-full bg-primary mt-2" />
+                <div>
+                  <p className="font-medium">User Management</p>
+                  <p className="text-sm text-muted-foreground">
+                    View and manage user accounts and permissions
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="h-2 w-2 rounded-full bg-primary mt-2" />
+                <div>
+                  <p className="font-medium">Project Management</p>
+                  <p className="text-sm text-muted-foreground">
+                    Create, edit, and delete ICO projects
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="h-2 w-2 rounded-full bg-primary mt-2" />
+                <div>
+                  <p className="font-medium">Transaction Oversight</p>
+                  <p className="text-sm text-muted-foreground">
+                    Monitor all platform transactions
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="h-2 w-2 rounded-full bg-primary mt-2" />
+                <div>
+                  <p className="font-medium">Security Controls</p>
+                  <p className="text-sm text-muted-foreground">
+                    Configure security settings and view audit logs
+                  </p>
+                </div>
               </div>
             </div>
           </Card>
@@ -277,6 +310,4 @@ export const AdminManagement = () => {
       </div>
     </div>
   );
-};
-
-export default AdminManagement;
+}
