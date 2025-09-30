@@ -43,13 +43,24 @@ export const AdminUsers = () => {
     return lastActive > oneDayAgo;
   }).length;
 
+  const transformUserForModal = (user: any) => ({
+    id: user.id,
+    address: user.wallet_address,
+    kycStatus: user.kyc_status,
+    totalInvested: `${user.total_invested_eth.toFixed(2)} ETH`,
+    projects: user.projects_count,
+    joined: new Date(user.joined_at).toLocaleDateString(),
+    lastActive: new Date(user.last_active_at).toLocaleString(),
+    banned: user.banned,
+  });
+
   const handleViewProfile = (user: any) => {
-    setSelectedUser(user);
+    setSelectedUser(transformUserForModal(user));
     setUserDetailsOpen(true);
   };
 
   const handleSendMessage = (user: any) => {
-    setSelectedUser(user);
+    setSelectedUser(transformUserForModal(user));
     setSendMessageOpen(true);
   };
 
