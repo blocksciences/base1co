@@ -14,12 +14,35 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAccount } from 'wagmi';
+import { toast } from 'sonner';
 
 export const ProjectDetail = () => {
   const { id } = useParams();
   const { data: project, isLoading } = useProject(id!);
   const { isConnected } = useAccount();
   const [investAmount, setInvestAmount] = useState('');
+  
+  const handleInvest = () => {
+    if (!investAmount || parseFloat(investAmount) <= 0) {
+      toast.error('Please enter a valid investment amount');
+      return;
+    }
+    toast.success(`Investment of ${investAmount} ETH initiated. Please confirm the transaction in your wallet.`);
+    // TODO: Implement actual smart contract interaction
+  };
+  
+  const handleClaimTokens = () => {
+    toast.success('Token claim initiated. Please confirm the transaction in your wallet.');
+    // TODO: Implement actual smart contract interaction for claiming
+  };
+  
+  const handleSocialLink = (platform: string, url?: string) => {
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+      toast.info(`${platform} link will be available soon`);
+    }
+  };
   
   if (isLoading) {
     return (
@@ -86,17 +109,32 @@ export const ProjectDetail = () => {
               
               {/* Social Links */}
               <div className="flex items-center gap-3">
-                <Button size="sm" variant="outline" className="gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="gap-2"
+                  onClick={() => handleSocialLink('Website', project.socialLinks?.website)}
+                >
                   <Globe className="h-4 w-4" />
                   Website
                   <ExternalLink className="h-3 w-3" />
                 </Button>
-                <Button size="sm" variant="outline" className="gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="gap-2"
+                  onClick={() => handleSocialLink('Twitter', project.socialLinks?.twitter)}
+                >
                   <Twitter className="h-4 w-4" />
                   Twitter
                   <ExternalLink className="h-3 w-3" />
                 </Button>
-                <Button size="sm" variant="outline" className="gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="gap-2"
+                  onClick={() => handleSocialLink('Whitepaper', project.socialLinks?.whitepaper)}
+                >
                   <FileText className="h-4 w-4" />
                   Whitepaper
                   <ExternalLink className="h-3 w-3" />
@@ -156,11 +194,14 @@ export const ProjectDetail = () => {
                   </div>
                   
                   {isConnected ? (
-                    <Button className="w-full h-12 text-lg bg-gradient-primary hover:opacity-90">
+                    <Button 
+                      className="w-full h-12 text-lg bg-gradient-primary hover:opacity-90"
+                      onClick={handleInvest}
+                    >
                       Invest Now
                     </Button>
                   ) : (
-                    <Button className="w-full h-12 text-lg" variant="outline">
+                    <Button className="w-full h-12 text-lg" variant="outline" disabled>
                       Connect Wallet to Invest
                     </Button>
                   )}
@@ -174,7 +215,10 @@ export const ProjectDetail = () => {
               )}
               
               {project.status === 'success' && (
-                <Button className="w-full h-12 text-lg bg-success hover:bg-success/90">
+                <Button 
+                  className="w-full h-12 text-lg bg-success hover:bg-success/90"
+                  onClick={handleClaimTokens}
+                >
                   Claim Tokens
                 </Button>
               )}

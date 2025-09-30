@@ -37,6 +37,7 @@ export interface Project {
     telegram?: string;
     discord?: string;
     medium?: string;
+    whitepaper?: string;
   };
   tokenomics?: {
     totalSupply: number;
