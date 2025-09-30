@@ -153,7 +153,7 @@ export const AdminProjects = () => {
   });
 
   const handleView = (projectId: string) => {
-    navigate(`/projects/${projectId}`);
+    navigate(`/project/${projectId}`);
   };
 
   const handleEdit = (projectId: string) => {
