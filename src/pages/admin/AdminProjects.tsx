@@ -17,8 +17,9 @@ import {
   Plus
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { EditProjectModal } from '@/components/admin/EditProjectModal';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,14 +38,20 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-export const AdminProjects = () => {
-  const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
-  
-  const projects = [
+interface Project {
+  id: string;
+  name: string;
+  symbol: string;
+  status: string;
+  raised: string;
+  goal: string;
+  participants: number;
+  progress: number;
+  startDate: string;
+  endDate: string;
+}
+
+const INITIAL_PROJECTS: Project[] = [
     { 
       id: '1', 
       name: 'DeFi Protocol X', 
@@ -104,8 +111,39 @@ export const AdminProjects = () => {
       progress: 104,
       startDate: '2025-08-01',
       endDate: '2025-09-01'
-    },
-  ];
+  },
+];
+
+export const AdminProjects = () => {
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+
+  // Initialize projects from localStorage or use defaults
+  useEffect(() => {
+    const storedProjects = localStorage.getItem('admin-projects');
+    if (storedProjects) {
+      try {
+        setProjects(JSON.parse(storedProjects));
+      } catch {
+        setProjects(INITIAL_PROJECTS);
+      }
+    } else {
+      setProjects(INITIAL_PROJECTS);
+    }
+  }, []);
+
+  // Save to localStorage whenever projects change
+  useEffect(() => {
+    if (projects.length > 0) {
+      localStorage.setItem('admin-projects', JSON.stringify(projects));
+    }
+  }, [projects]);
   
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -119,15 +157,26 @@ export const AdminProjects = () => {
   };
 
   const handleEdit = (projectId: string) => {
-    toast.info('Edit functionality coming soon');
-    // TODO: Navigate to edit page or open edit modal
-    // navigate(`/admin/projects/edit/${projectId}`);
+    const project = projects.find(p => p.id === projectId);
+    if (project) {
+      setProjectToEdit(project);
+      setEditModalOpen(true);
+    }
+  };
+
+  const handleSaveEdit = (updatedProject: Project) => {
+    setProjects(prevProjects =>
+      prevProjects.map(p => p.id === updatedProject.id ? updatedProject : p)
+    );
   };
 
   const handleStatusChange = (projectId: string, newStatus: string) => {
+    setProjects(prevProjects =>
+      prevProjects.map(p => 
+        p.id === projectId ? { ...p, status: newStatus } : p
+      )
+    );
     toast.success(`Project status changed to ${newStatus}`);
-    // TODO: Implement actual status update logic with backend
-    console.log(`Changing project ${projectId} status to ${newStatus}`);
   };
 
   const handleApprove = (projectId: string) => {
@@ -153,9 +202,8 @@ export const AdminProjects = () => {
 
   const handleDelete = () => {
     if (projectToDelete) {
+      setProjects(prevProjects => prevProjects.filter(p => p.id !== projectToDelete));
       toast.success('Project deleted successfully');
-      // TODO: Implement actual deletion logic with backend
-      console.log(`Deleting project ${projectToDelete}`);
       setDeleteDialogOpen(false);
       setProjectToDelete(null);
     }
@@ -376,6 +424,14 @@ export const AdminProjects = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Project Modal */}
+      <EditProjectModal
+        project={projectToEdit}
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        onSave={handleSaveEdit}
+      />
     </div>
   );
 };
