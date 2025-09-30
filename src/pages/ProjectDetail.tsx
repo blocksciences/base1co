@@ -15,25 +15,69 @@ import {
 import { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { toast } from 'sonner';
+import { useICOContract } from '@/hooks/useICOContract';
+import { z } from 'zod';
+
+const investmentSchema = z.object({
+  amount: z.string()
+    .refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+      message: "Amount must be a positive number"
+    })
+    .refine((val) => parseFloat(val) <= 100, {
+      message: "Amount cannot exceed 100 ETH"
+    })
+    .refine((val) => parseFloat(val) >= 0.01, {
+      message: "Minimum investment is 0.01 ETH"
+    })
+});
 
 export const ProjectDetail = () => {
   const { id } = useParams();
   const { data: project, isLoading } = useProject(id!);
   const { isConnected } = useAccount();
   const [investAmount, setInvestAmount] = useState('');
+  const [isInvesting, setIsInvesting] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
   
-  const handleInvest = () => {
-    if (!investAmount || parseFloat(investAmount) <= 0) {
-      toast.error('Please enter a valid investment amount');
+  const { invest, claimTokens } = useICOContract(project?.contractAddress || '');
+  
+  const handleInvest = async () => {
+    // Validate input
+    const validation = investmentSchema.safeParse({ amount: investAmount });
+    
+    if (!validation.success) {
+      toast.error(validation.error.errors[0].message);
       return;
     }
-    toast.success(`Investment of ${investAmount} ETH initiated. Please confirm the transaction in your wallet.`);
-    // TODO: Implement actual smart contract interaction
+
+    if (!isConnected) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    setIsInvesting(true);
+    try {
+      const success = await invest(investAmount);
+      if (success) {
+        setInvestAmount(''); // Clear input on success
+      }
+    } finally {
+      setIsInvesting(false);
+    }
   };
   
-  const handleClaimTokens = () => {
-    toast.success('Token claim initiated. Please confirm the transaction in your wallet.');
-    // TODO: Implement actual smart contract interaction for claiming
+  const handleClaimTokens = async () => {
+    if (!isConnected) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    setIsClaiming(true);
+    try {
+      await claimTokens();
+    } finally {
+      setIsClaiming(false);
+    }
   };
   
   const handleSocialLink = (platform: string, url?: string) => {
@@ -197,8 +241,16 @@ export const ProjectDetail = () => {
                     <Button 
                       className="w-full h-12 text-lg bg-gradient-primary hover:opacity-90"
                       onClick={handleInvest}
+                      disabled={isInvesting || !investAmount}
                     >
-                      Invest Now
+                      {isInvesting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Processing...
+                        </>
+                      ) : (
+                        'Invest Now'
+                      )}
                     </Button>
                   ) : (
                     <Button className="w-full h-12 text-lg" variant="outline" disabled>
@@ -218,8 +270,16 @@ export const ProjectDetail = () => {
                 <Button 
                   className="w-full h-12 text-lg bg-success hover:bg-success/90"
                   onClick={handleClaimTokens}
+                  disabled={isClaiming || !isConnected}
                 >
-                  Claim Tokens
+                  {isClaiming ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Claiming...
+                    </>
+                  ) : (
+                    'Claim Tokens'
+                  )}
                 </Button>
               )}
             </Card>
