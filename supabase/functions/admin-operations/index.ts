@@ -193,6 +193,29 @@ serve(async (req) => {
         result = { success: true, message: 'Admin role removed successfully' };
         break;
 
+      case 'remove_admin_wallet':
+        // Delete wallet admin
+        const { error: deleteWalletError } = await supabaseClient
+          .from('admin_wallets')
+          .delete()
+          .eq('wallet_address', targetWallet);
+
+        if (deleteWalletError) {
+          console.error('Error removing wallet admin:', deleteWalletError);
+          return new Response(
+            JSON.stringify({ error: 'Failed to remove admin wallet' }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 500,
+            }
+          );
+        }
+
+        auditAction = 'remove_admin_wallet';
+        auditDetails = { wallet_address: targetWallet };
+        result = { success: true, message: 'Admin wallet removed successfully' };
+        break;
+
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid operation' }),

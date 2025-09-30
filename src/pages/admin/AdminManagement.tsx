@@ -116,7 +116,7 @@ export default function AdminManagement() {
   };
 
   const handleRemoveAdmin = async (userId: string) => {
-    if (admins.length <= 1) {
+    if (admins.length <= 1 && walletAdmins.length === 0) {
       toast.error('Cannot remove the last admin');
       return;
     }
@@ -141,6 +141,35 @@ export default function AdminManagement() {
     } catch (error: any) {
       console.error('Error removing admin:', error);
       toast.error(error.message || 'Failed to remove admin');
+    }
+  };
+
+  const handleRemoveWalletAdmin = async (walletAddress: string) => {
+    if (walletAdmins.length <= 1 && admins.length === 0) {
+      toast.error('Cannot remove the last admin');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to remove this wallet admin?')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase.functions.invoke('admin-operations', {
+        body: {
+          operation: 'remove_admin_wallet',
+          targetWallet: walletAddress,
+        },
+        headers: address ? { 'x-wallet-address': address } : {},
+      });
+
+      if (error) throw error;
+
+      toast.success('Wallet admin removed successfully');
+      loadAdmins();
+    } catch (error: any) {
+      console.error('Error removing wallet admin:', error);
+      toast.error(error.message || 'Failed to remove wallet admin');
     }
   };
 
@@ -308,6 +337,14 @@ export default function AdminManagement() {
                           <Copy className="h-4 w-4" />
                         )}
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveWalletAdmin(admin.wallet_address)}
+                        disabled={walletAdmins.length <= 1 && admins.length === 0}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -346,7 +383,7 @@ export default function AdminManagement() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleRemoveAdmin(admin.user_id)}
-                        disabled={admins.length <= 1}
+                        disabled={admins.length <= 1 && walletAdmins.length === 0}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
