@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { ethers } from "https://esm.sh/ethers@6.7.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,62 +44,16 @@ serve(async (req) => {
     
     console.log('Deployment request:', deploymentData);
 
-    // Get deployment credentials from secrets
-    const privateKey = Deno.env.get('DEPLOYER_PRIVATE_KEY');
-    const rpcUrl = Deno.env.get('BASE_SEPOLIA_RPC_URL');
-
-    if (!privateKey) {
-      throw new Error('DEPLOYER_PRIVATE_KEY not configured. Please add it in project settings.');
-    }
-
-    if (!rpcUrl) {
-      throw new Error('BASE_SEPOLIA_RPC_URL not configured. Please add a valid Base Sepolia RPC URL (e.g., from Alchemy, Infura, or public endpoints).');
-    }
-
-    console.log('Connecting to Base Sepolia...');
-    console.log('RPC URL:', rpcUrl);
+    // This edge function now ONLY creates the database record
+    // No contract deployment happens here - that's done via hardhat separately
+    console.log('Creating ICO project record in database...');
     
-    let provider;
-    try {
-      provider = new ethers.JsonRpcProvider(rpcUrl);
-      // Test the connection
-      await provider.getNetwork();
-      console.log('✅ Successfully connected to Base Sepolia');
-    } catch (error) {
-      console.error('Failed to connect to RPC:', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to connect to Base Sepolia RPC. Please verify your BASE_SEPOLIA_RPC_URL is correct. Error: ${errorMessage}`);
-    }
-
-    const wallet = new ethers.Wallet(privateKey, provider);
+    // Generate placeholder addresses for the project
+    const placeholderTokenAddress = `0x${Math.random().toString(16).slice(2, 42).padStart(40, '0')}`;
+    const placeholderSaleAddress = `0x${Math.random().toString(16).slice(2, 42).padStart(40, '0')}`;
     
-    console.log('Deployer wallet:', wallet.address);
-    
-    let balance;
-    try {
-      balance = await provider.getBalance(wallet.address);
-      console.log('Deployer balance:', ethers.formatEther(balance), 'ETH');
-    } catch (error) {
-      console.error('Failed to get balance:', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to get wallet balance. RPC connection issue: ${errorMessage}`);
-    }
-
-    if (balance === 0n) {
-      throw new Error('Deployer wallet has no ETH. Please fund it with Base Sepolia ETH.');
-    }
-
-    // For now, we'll create placeholder addresses
-    // Actual contract deployment should be done via hardhat in the /contracts folder
-    // This allows us to bypass the complexity of compiling and deploying from edge functions
-    console.log('Creating ICO project with placeholder addresses...');
-    console.log('Note: For actual blockchain deployment, use the hardhat setup in /contracts folder');
-    
-    const tokenAddress = ethers.Wallet.createRandom().address;
-    const saleAddress = ethers.Wallet.createRandom().address;
-    
-    console.log('📝 Token address (placeholder):', tokenAddress);
-    console.log('📝 Sale contract address (placeholder):', saleAddress);
+    console.log('Placeholder token address:', placeholderTokenAddress);
+    console.log('Placeholder sale address:', placeholderSaleAddress);
     
     // Create deployment record in database with contract addresses
     const { data: project, error: projectError } = await supabaseClient
@@ -114,7 +67,7 @@ serve(async (req) => {
         end_date: deploymentData.endDate,
         status: 'active',
         created_by: deploymentData.deployerAddress,
-        contract_address: saleAddress,
+        contract_address: placeholderSaleAddress,
       })
       .select()
       .single();
@@ -123,18 +76,18 @@ serve(async (req) => {
       throw projectError;
     }
 
-    // Log successful deployment
+    // Log successful project creation
     await supabaseClient
       .from('platform_activities')
       .insert({
         activity_type: 'contract_deployment',
-        action_text: `Successfully deployed ICO contracts for ${deploymentData.projectName}`,
+        action_text: `Created ICO project for ${deploymentData.projectName}`,
         status: 'completed',
         user_address: deploymentData.deployerAddress,
         metadata: {
           project_id: project.id,
-          token_address: tokenAddress,
-          sale_address: saleAddress,
+          token_address: placeholderTokenAddress,
+          sale_address: placeholderSaleAddress,
           token_symbol: deploymentData.tokenSymbol,
           hard_cap: deploymentData.hardCap,
         },
@@ -152,8 +105,8 @@ serve(async (req) => {
         '3. After deployment: Update contract addresses via API or database',
       ],
       placeholderAddresses: {
-        token: tokenAddress,
-        sale: saleAddress,
+        token: placeholderTokenAddress,
+        sale: placeholderSaleAddress,
       },
       projectDetails: {
         name: deploymentData.projectName,
@@ -162,7 +115,7 @@ serve(async (req) => {
         hardCap: deploymentData.hardCap,
         softCap: deploymentData.softCap,
       },
-      deployer: wallet.address,
+      deployer: deploymentData.deployerAddress,
       timestamp: new Date().toISOString(),
     };
 
