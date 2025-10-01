@@ -278,6 +278,48 @@ export const AdminProjects = () => {
                         </td>
                         <td className="p-4">
                           <div className="flex items-center justify-end gap-2">
+                            {project.status === 'pending' && (
+                              <>
+                                <Button 
+                                  size="sm" 
+                                  variant="default" 
+                                  className="bg-success hover:bg-success/90"
+                                  onClick={() => handleApprove(project.id)}
+                                >
+                                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                                  Approve
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="destructive"
+                                  onClick={() => handleReject(project.id)}
+                                >
+                                  <XCircle className="h-4 w-4 mr-1" />
+                                  Reject
+                                </Button>
+                              </>
+                            )}
+                            {project.status === 'live' && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handlePause(project.id)}
+                              >
+                                <Pause className="h-4 w-4 mr-1" />
+                                Pause
+                              </Button>
+                            )}
+                            {project.status === 'paused' && (
+                              <Button 
+                                size="sm" 
+                                variant="default"
+                                className="bg-success hover:bg-success/90"
+                                onClick={() => handleActivate(project.id)}
+                              >
+                                <Play className="h-4 w-4 mr-1" />
+                                Activate
+                              </Button>
+                            )}
                             <Button 
                               size="icon" 
                               variant="ghost" 
