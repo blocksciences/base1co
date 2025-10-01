@@ -32,15 +32,15 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const authHeader = req.headers.get('Authorization')!;
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user } } = await supabaseClient.auth.getUser(token);
-
-    if (!user) {
-      throw new Error('Unauthorized');
-    }
-
     const deploymentData: DeploymentRequest = await req.json();
+    
+    // Check if the deployer address is an admin wallet
+    const { data: isAdmin } = await supabaseClient
+      .rpc('is_wallet_admin', { check_wallet_address: deploymentData.deployerAddress });
+
+    if (!isAdmin) {
+      throw new Error('Unauthorized: Only admin wallets can deploy contracts');
+    }
     
     console.log('Deployment request:', deploymentData);
 

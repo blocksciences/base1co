@@ -1,7 +1,7 @@
 project_id = "oltlkbykrxikrflqxxla"
 
 [functions.deploy-ico-contracts]
-verify_jwt = true
+verify_jwt = false
 
 [functions.check-eligibility]
 verify_jwt = false
