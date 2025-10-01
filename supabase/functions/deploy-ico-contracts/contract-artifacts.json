@@ -1,0 +1,22 @@
+{
+  "ICOToken": {
+    "abi": [],
+    "bytecode": "0x"
+  },
+  "KYCRegistry": {
+    "abi": [],
+    "bytecode": "0x"
+  },
+  "ICOSale": {
+    "abi": [],
+    "bytecode": "0x"
+  },
+  "VestingVault": {
+    "abi": [],
+    "bytecode": "0x"
+  },
+  "LiquidityLocker": {
+    "abi": [],
+    "bytecode": "0x"
+  }
+}
