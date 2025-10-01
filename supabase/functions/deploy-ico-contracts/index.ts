@@ -75,7 +75,7 @@ serve(async (req) => {
 
     // Check balance with retry to handle RPC caching issues
     let balance = BigInt(0);
-    const maxBalanceRetries = 3;
+    const maxBalanceRetries = 10;
     for (let attempt = 1; attempt <= maxBalanceRetries; attempt++) {
       try {
         // Force latest block to avoid stale RPC cache
@@ -86,21 +86,23 @@ serve(async (req) => {
         
         const minRequired = ethers.parseEther('0.05');
         if (balance >= minRequired) {
+          console.log('✅ Sufficient balance confirmed');
           break; // Sufficient balance found
         }
         
         if (attempt < maxBalanceRetries) {
-          console.log('Balance below minimum, retrying in 3 seconds in case of RPC cache lag...');
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          const waitTime = 5;
+          console.log(`⚠️ Balance below minimum (${ethers.formatEther(balance)} < 0.05 ETH), retrying in ${waitTime} seconds... (RPC may be cached)`);
+          await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
         } else {
-          throw new Error(`Insufficient ETH balance. Have: ${ethers.formatEther(balance)} ETH, Need at least 0.05 ETH for deployment. If you recently funded this wallet, please wait a few minutes for the blockchain to sync.`);
+          throw new Error(`Insufficient ETH balance after ${maxBalanceRetries} attempts. Have: ${ethers.formatEther(balance)} ETH, Need at least 0.05 ETH. The RPC node may be showing a cached balance. Please wait a few minutes and try again, or contact support if the issue persists.`);
         }
       } catch (error: any) {
         if (attempt === maxBalanceRetries) {
           throw error;
         }
         console.log(`Balance check failed, retrying... (${error.message})`);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 3000));
       }
     }
 
