@@ -40,7 +40,8 @@ async function main() {
   fs.writeFileSync(outputPath, JSON.stringify(output, null, 2));
   
   console.log(`\n✅ Contract artifacts saved to: ${outputPath}`);
-  console.log('You can now use automated deployment from the web UI!');
+  console.log('\n🚀 Automated deployment is now enabled!');
+  console.log('You can deploy ICOs directly from your admin dashboard.');
 }
 
 main()
