@@ -6,14 +6,14 @@ import { toast } from 'sonner';
 const ICO_ABI = [
   {
     inputs: [],
-    name: 'invest',
+    name: 'buyTokens',
     outputs: [],
     stateMutability: 'payable',
     type: 'function',
   },
   {
     inputs: [],
-    name: 'claimTokens',
+    name: 'claimRefund',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
@@ -54,9 +54,17 @@ export const useICOContract = (contractAddress: string) => {
 
       toast.loading('Preparing transaction...', { id: 'invest' });
 
+      // Encode the buyTokens() function call
+      const data = encodeFunctionData({
+        abi: ICO_ABI,
+        functionName: 'buyTokens',
+        args: [],
+      });
+
       const hash = await walletClient.sendTransaction({
         to: contractAddress as `0x${string}`,
         value: valueInWei,
+        data,
       } as any);
 
       toast.loading('Transaction submitted. Waiting for confirmation...', { id: 'invest' });
@@ -83,7 +91,7 @@ export const useICOContract = (contractAddress: string) => {
     }
   };
 
-  const claimTokens = async () => {
+  const claimRefund = async () => {
     if (!isConnected || !address) {
       toast.error('Please connect your wallet first');
       return false;
@@ -95,36 +103,36 @@ export const useICOContract = (contractAddress: string) => {
     }
 
     try {
-      toast.loading('Preparing claim transaction...', { id: 'claim' });
+      toast.loading('Preparing refund claim...', { id: 'claim' });
 
-      // Encode the claimTokens() function call
+      // Encode the claimRefund() function call
       const data = encodeFunctionData({
         abi: ICO_ABI,
-        functionName: 'claimTokens',
-        args: [], // claimTokens takes no arguments
+        functionName: 'claimRefund',
+        args: [],
       });
 
       const hash = await walletClient.sendTransaction({
         to: contractAddress as `0x${string}`,
-        data, // Include the encoded function call
+        data,
       } as any);
 
-      toast.loading('Claim submitted. Waiting for confirmation...', { id: 'claim' });
+      toast.loading('Refund submitted. Waiting for confirmation...', { id: 'claim' });
 
       // Wait for transaction confirmation
       if (publicClient) {
         await publicClient.waitForTransactionReceipt({ hash });
       }
 
-      toast.success('Tokens claimed successfully!', { id: 'claim' });
+      toast.success('Refund claimed successfully!', { id: 'claim' });
       return true;
     } catch (error: any) {
-      console.error('Claim error:', error);
+      console.error('Claim refund error:', error);
       
       if (error.message?.includes('User rejected')) {
         toast.error('Transaction rejected by user', { id: 'claim' });
       } else {
-        toast.error('Claim failed. Please try again.', { id: 'claim' });
+        toast.error('Refund claim failed. Please try again.', { id: 'claim' });
       }
       
       return false;
@@ -157,7 +165,7 @@ export const useICOContract = (contractAddress: string) => {
 
   return {
     invest,
-    claimTokens,
+    claimRefund,
     getUserContribution,
     isConnected,
   };

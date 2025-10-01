@@ -40,7 +40,7 @@ export const ProjectDetail = () => {
   const [isInvesting, setIsInvesting] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
   
-  const { invest, claimTokens } = useICOContract(project?.contractAddress || '');
+  const { invest, claimRefund } = useICOContract(project?.contractAddress || '');
   
   const handleInvest = async () => {
     // Validate input
@@ -63,8 +63,16 @@ export const ProjectDetail = () => {
 
     setIsInvesting(true);
     try {
-      // Save investment to database
-      const tokenPrice = parseFloat(project.price.split(' ')[0]); // Extract price from "0.05 ETH"
+      // STEP 1: Call the blockchain contract's buyTokens()
+      const success = await invest(investAmount);
+      
+      if (!success) {
+        // Transaction failed or was rejected
+        return;
+      }
+
+      // STEP 2: Save investment to database AFTER successful blockchain transaction
+      const tokenPrice = parseFloat(project.price.split(' ')[0]);
       const tokensReceived = parseFloat(investAmount) / tokenPrice;
       
       const { error } = await supabase
@@ -75,29 +83,15 @@ export const ProjectDetail = () => {
           project_name: project.name,
           project_symbol: project.symbol,
           amount_eth: parseFloat(investAmount),
-          amount_usd: parseFloat(investAmount) * 2500, // Mock ETH price
+          amount_usd: parseFloat(investAmount) * 2500,
           tokens_received: tokensReceived,
           status: 'active',
         });
 
       if (error) throw error;
 
-      // Also create a transaction record
-      await supabase
-        .from('transactions')
-        .insert({
-          transaction_type: 'invest',
-          from_address: address,
-          project_id: project.id,
-          project_name: project.name,
-          amount_crypto: `${investAmount} ETH`,
-          amount_usd: parseFloat(investAmount) * 2500,
-          tx_hash: `0x${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`,
-          status: 'confirmed',
-        });
-
       toast.success(`Successfully invested ${investAmount} ETH in ${project.name}!`);
-      setInvestAmount(''); // Clear input on success
+      setInvestAmount('');
     } catch (error: any) {
       console.error('Investment error:', error);
       toast.error(error.message || 'Failed to process investment');
@@ -114,19 +108,9 @@ export const ProjectDetail = () => {
 
     setIsClaiming(true);
     try {
-      const success = await claimTokens();
-      
-      if (success) {
-        // Update database after successful blockchain claim
-        const { error } = await supabase
-          .from('user_investments')
-          .update({ status: 'claimed' })
-          .eq('wallet_address', address)
-          .eq('project_id', project.id)
-          .eq('status', 'active');
-
-        if (error) console.error('Error updating investment status:', error);
-      }
+      // Tokens are transferred immediately during buyTokens()
+      // This should only be visible if soft cap wasn't reached (for refunds)
+      toast.info('Tokens are automatically transferred when you invest. No claim needed!');
     } finally {
       setIsClaiming(false);
     }
