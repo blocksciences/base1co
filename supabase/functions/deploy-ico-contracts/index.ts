@@ -76,7 +76,6 @@ serve(async (req) => {
     // Convert parameters
     const startTime = Math.floor(new Date(deploymentData.startDate).getTime() / 1000);
     const endTime = Math.floor(new Date(deploymentData.endDate).getTime() / 1000);
-    const totalSupplyWithDecimals = ethers.parseUnits(deploymentData.totalSupply, deploymentData.tokenDecimals);
 
     console.log('\n📦 Deploying contracts...\n');
 
@@ -100,10 +99,10 @@ serve(async (req) => {
       wallet
     );
     const token = await TokenFactory.deploy(
-      deploymentData.projectName,
-      deploymentData.tokenSymbol,
-      deploymentData.totalSupply,
-      deploymentData.tokenDecimals
+      deploymentData.projectName,      // name
+      deploymentData.tokenSymbol,      // symbol
+      BigInt(deploymentData.totalSupply), // initialSupply (raw number, contract will multiply by decimals)
+      deploymentData.tokenDecimals     // decimals
     );
     await token.waitForDeployment();
     const tokenAddress = await token.getAddress();
@@ -158,6 +157,8 @@ serve(async (req) => {
 
     // 6. Transfer 40% of tokens to sale contract
     console.log('\n6. Allocating tokens to sale...');
+    // Calculate 40% of total supply WITH decimals (since tokens are already minted with decimals by the contract)
+    const totalSupplyWithDecimals = ethers.parseUnits(deploymentData.totalSupply, deploymentData.tokenDecimals);
     const saleAllocation = (totalSupplyWithDecimals * BigInt(40)) / BigInt(100);
     const tokenContract = new ethers.Contract(
       tokenAddress,
