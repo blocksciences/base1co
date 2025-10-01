@@ -1,488 +1,417 @@
-import { AdminSidebar } from '@/components/admin/AdminSidebar';
-import { AdminHeader } from '@/components/admin/AdminHeader';
-import { Card } from '@/components/ui/card';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Upload, Plus, X, Rocket } from 'lucide-react';
-import { format } from 'date-fns';
+import { useContractDeployment, DeploymentParams } from '@/hooks/useContractDeployment';
+import { AdminHeader } from '@/components/admin/AdminHeader';
 import { toast } from 'sonner';
-import { useContractDeployment } from '@/hooks/useContractDeployment';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Rocket, Code, CheckCircle2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
-export const CreateICO = () => {
-  const [startDate, setStartDate] = useState<Date>();
-  const [endDate, setEndDate] = useState<Date>();
-  const [teamMembers, setTeamMembers] = useState([{ name: '', role: '', image: '' }]);
-  const [deploymentResult, setDeploymentResult] = useState<any>(null);
-  
+export default function CreateICO() {
+  const navigate = useNavigate();
   const { deployContracts, isDeploying } = useContractDeployment();
-  
-  const addTeamMember = () => {
-    setTeamMembers([...teamMembers, { name: '', role: '', image: '' }]);
+  const [step, setStep] = useState<'form' | 'instructions' | 'register'>('form');
+  const [deploymentInstructions, setDeploymentInstructions] = useState<any>(null);
+  const [projectId, setProjectId] = useState<string>('');
+  const [formData, setFormData] = useState<DeploymentParams>({
+    projectName: '',
+    tokenSymbol: '',
+    totalSupply: '',
+    tokenDecimals: 18,
+    tokenPrice: '',
+    softCap: '',
+    hardCap: '',
+    minContribution: '',
+    maxContribution: '',
+    startDate: '',
+    endDate: '',
+  });
+  const [deployedAddresses, setDeployedAddresses] = useState({
+    tokenAddress: '',
+    saleAddress: '',
+    kycRegistryAddress: '',
+    vestingVaultAddress: '',
+    liquidityLockerAddress: '',
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
-  
-  const removeTeamMember = (index: number) => {
-    setTeamMembers(teamMembers.filter((_, i) => i !== index));
-  };
-  
-  const handleDeploy = async () => {
-    const form = document.getElementById('ico-form') as HTMLFormElement;
-    const formData = new FormData(form);
-    
-    const projectName = formData.get('project-name') as string;
-    const tokenSymbol = formData.get('token-symbol') as string;
-    const totalSupply = formData.get('total-supply') as string;
-    const softCap = formData.get('soft-cap') as string;
-    const hardCap = formData.get('hard-cap') as string;
-    const minContribution = formData.get('min-contribution') as string;
-    const maxContribution = formData.get('max-contribution') as string;
-    const initialPrice = formData.get('initial-price') as string;
-    
-    if (!projectName || !tokenSymbol || !totalSupply || !softCap || !hardCap || !startDate || !endDate) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-    
-    const result = await deployContracts({
-      projectName,
-      tokenSymbol,
-      totalSupply,
-      tokenDecimals: 18,
-      tokenPrice: initialPrice || '0.0001',
-      softCap,
-      hardCap,
-      minContribution: minContribution || '0.1',
-      maxContribution: maxContribution || '100',
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-    });
-    
-    if (result) {
-      setDeploymentResult(result);
-      toast.success('Review the deployment instructions below');
-    }
-  };
-  
-  const handleSubmit = (e: React.FormEvent) => {
+
+  const handleGenerateInstructions = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success('ICO created successfully! Pending approval.');
+    const result = await deployContracts(formData);
+    if (result) {
+      setDeploymentInstructions(result);
+      setProjectId(result.projectId);
+      setStep('instructions');
+    }
   };
-  
+
+  const handleRegisterContracts = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          contract_address: deployedAddresses.saleAddress,
+          kyc_registry_address: deployedAddresses.kycRegistryAddress || null,
+          vesting_vault_address: deployedAddresses.vestingVaultAddress || null,
+          liquidity_locker_address: deployedAddresses.liquidityLockerAddress || null,
+          status: 'active',
+        })
+        .eq('id', projectId);
+
+      if (error) throw error;
+
+      toast.success('Contracts registered successfully! ICO is now live.');
+      navigate('/admin/projects');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to register contracts');
+    }
+  };
+
   return (
-    <div className="flex min-h-screen">
-      <AdminSidebar />
+    <div className="min-h-screen bg-background">
+      <AdminHeader />
       
-      <div className="flex-1">
-        <AdminHeader />
-        
-        <main className="p-6">
-          <div className="max-w-5xl mx-auto space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">Create New ICO</h1>
-              <p className="text-muted-foreground">Launch a new token sale project on the platform</p>
+      <main className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold mb-2">Deploy New ICO</h1>
+            <p className="text-muted-foreground">
+              Create and deploy a complete ICO ecosystem on Base Sepolia
+            </p>
+          </div>
+
+          {/* Progress Steps */}
+          <div className="flex items-center justify-center mb-8 gap-4">
+            <div className={`flex items-center gap-2 ${step === 'form' ? 'text-primary' : 'text-muted-foreground'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'form' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                1
+              </div>
+              <span className="text-sm font-medium">Configure</span>
             </div>
-            
-            <form id="ico-form" onSubmit={handleSubmit}>
-              <Tabs defaultValue="basic" className="space-y-6">
-                <TabsList className="glass">
-                  <TabsTrigger value="basic">Basic Info</TabsTrigger>
-                  <TabsTrigger value="tokenomics">Tokenomics</TabsTrigger>
-                  <TabsTrigger value="sale">Sale Details</TabsTrigger>
-                  <TabsTrigger value="team">Team</TabsTrigger>
-                  <TabsTrigger value="contract">Smart Contract</TabsTrigger>
-                </TabsList>
-                
-                {/* Basic Info */}
-                <TabsContent value="basic" className="space-y-6">
-                  <Card className="glass p-6 space-y-6">
-                    <h2 className="text-xl font-bold">Project Information</h2>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="project-name">Project Name *</Label>
-                        <Input name="project-name" id="project-name" placeholder="DeFi Protocol X" required />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="token-symbol">Token Symbol *</Label>
-                        <Input name="token-symbol" id="token-symbol" placeholder="DPX" required />
-                      </div>
-                    </div>
-                    
+            <div className="w-16 h-px bg-border" />
+            <div className={`flex items-center gap-2 ${step === 'instructions' ? 'text-primary' : 'text-muted-foreground'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'instructions' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                2
+              </div>
+              <span className="text-sm font-medium">Deploy</span>
+            </div>
+            <div className="w-16 h-px bg-border" />
+            <div className={`flex items-center gap-2 ${step === 'register' ? 'text-primary' : 'text-muted-foreground'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'register' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                3
+              </div>
+              <span className="text-sm font-medium">Register</span>
+            </div>
+          </div>
+
+          {step === 'form' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Rocket className="w-5 h-5" />
+                  ICO Configuration
+                </CardTitle>
+                <CardDescription>
+                  Fill in the details for your ICO. This will generate deployment instructions.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleGenerateInstructions} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="description">Project Description *</Label>
-                      <Textarea 
-                        id="description" 
-                        placeholder="Describe your project, its goals, and unique value proposition..."
-                        rows={4}
+                      <Label htmlFor="projectName">Project Name *</Label>
+                      <Input
+                        id="projectName"
+                        name="projectName"
+                        value={formData.projectName}
+                        onChange={handleChange}
                         required
                       />
                     </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="website">Website URL</Label>
-                        <Input id="website" type="url" placeholder="https://example.com" />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="whitepaper">Whitepaper URL</Label>
-                        <Input id="whitepaper" type="url" placeholder="https://example.com/whitepaper.pdf" />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="twitter">Twitter</Label>
-                        <Input id="twitter" placeholder="@project" />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="telegram">Telegram</Label>
-                        <Input id="telegram" placeholder="t.me/project" />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="discord">Discord</Label>
-                        <Input id="discord" placeholder="discord.gg/project" />
-                      </div>
-                    </div>
-                    
                     <div className="space-y-2">
-                      <Label htmlFor="logo">Project Logo *</Label>
-                      <div className="flex items-center gap-4">
-                        <Button type="button" variant="outline" className="gap-2">
-                          <Upload className="h-4 w-4" />
-                          Upload Image
-                        </Button>
-                        <span className="text-sm text-muted-foreground">
-                          Recommended: 400x400px, PNG or JPG
-                        </span>
-                      </div>
-                    </div>
-                  </Card>
-                </TabsContent>
-                
-                {/* Tokenomics */}
-                <TabsContent value="tokenomics" className="space-y-6">
-                  <Card className="glass p-6 space-y-6">
-                    <h2 className="text-xl font-bold">Token Distribution</h2>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="total-supply">Total Supply *</Label>
-                      <Input name="total-supply" id="total-supply" type="number" placeholder="1000000000" required />
-                    </div>
-                      
-                    <div className="space-y-2">
-                      <Label htmlFor="initial-price">Initial Token Price (ETH) *</Label>
-                      <Input name="initial-price" id="initial-price" type="number" step="0.0001" placeholder="0.0001" required />
-                    </div>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <h3 className="font-semibold">Allocation Breakdown</h3>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="public-sale">Public Sale %</Label>
-                          <Input id="public-sale" type="number" min="0" max="100" placeholder="40" />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="team">Team & Advisors %</Label>
-                          <Input id="team" type="number" min="0" max="100" placeholder="20" />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="ecosystem">Ecosystem Fund %</Label>
-                          <Input id="ecosystem" type="number" min="0" max="100" placeholder="25" />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="liquidity">Liquidity %</Label>
-                          <Input id="liquidity" type="number" min="0" max="100" placeholder="15" />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <h3 className="font-semibold">Vesting Schedule</h3>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="cliff">Cliff Period (days)</Label>
-                          <Input id="cliff" type="number" placeholder="90" />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="vesting">Vesting Duration (days)</Label>
-                          <Input id="vesting" type="number" placeholder="365" />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="tge">TGE Release %</Label>
-                          <Input id="tge" type="number" min="0" max="100" placeholder="10" />
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                </TabsContent>
-                
-                {/* Sale Details */}
-                <TabsContent value="sale" className="space-y-6">
-                  <Card className="glass p-6 space-y-6">
-                    <h2 className="text-xl font-bold">Sale Configuration</h2>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="soft-cap">Soft Cap (ETH) *</Label>
-                        <Input name="soft-cap" id="soft-cap" type="number" step="0.1" placeholder="1000" required />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="hard-cap">Hard Cap (ETH) *</Label>
-                        <Input name="hard-cap" id="hard-cap" type="number" step="0.1" placeholder="5000" required />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="min-contribution">Minimum Contribution (ETH)</Label>
-                        <Input name="min-contribution" id="min-contribution" type="number" step="0.01" placeholder="0.1" />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="max-contribution">Maximum Contribution (ETH)</Label>
-                        <Input name="max-contribution" id="max-contribution" type="number" step="0.1" placeholder="100" />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label>Start Date *</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" className="w-full justify-start text-left">
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {startDate ? format(startDate, 'PPP') : 'Pick a date'}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0 glass">
-                            <Calendar
-                              mode="single"
-                              selected={startDate}
-                              onSelect={setStartDate}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label>End Date *</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" className="w-full justify-start text-left">
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {endDate ? format(endDate, 'PPP') : 'Pick a date'}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0 glass">
-                            <Calendar
-                              mode="single"
-                              selected={endDate}
-                              onSelect={setEndDate}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="accepted-tokens">Accepted Payment Methods</Label>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select payment methods" />
-                        </SelectTrigger>
-                        <SelectContent className="glass">
-                          <SelectItem value="eth">ETH</SelectItem>
-                          <SelectItem value="usdt">USDT</SelectItem>
-                          <SelectItem value="usdc">USDC</SelectItem>
-                          <SelectItem value="all">All of the above</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </Card>
-                </TabsContent>
-                
-                {/* Team */}
-                <TabsContent value="team" className="space-y-6">
-                  <Card className="glass p-6 space-y-6">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-xl font-bold">Team Members</h2>
-                      <Button type="button" onClick={addTeamMember} className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Add Member
-                      </Button>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      {teamMembers.map((member, index) => (
-                        <div key={index} className="p-4 rounded-lg bg-muted/20 space-y-4">
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-semibold">Team Member {index + 1}</h3>
-                            {teamMembers.length > 1 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeTeamMember(index)}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor={`member-name-${index}`}>Name</Label>
-                              <Input id={`member-name-${index}`} placeholder="John Doe" />
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <Label htmlFor={`member-role-${index}`}>Role</Label>
-                              <Input id={`member-role-${index}`} placeholder="CEO & Founder" />
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <Label htmlFor={`member-image-${index}`}>Image URL</Label>
-                              <Input id={`member-image-${index}`} placeholder="https://..." />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                </TabsContent>
-                
-                {/* Smart Contract */}
-                <TabsContent value="contract" className="space-y-6">
-                  <Card className="glass p-6 space-y-6">
-                    <h2 className="text-xl font-bold">Smart Contract Configuration</h2>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="contract-address">Token Contract Address</Label>
-                      <Input 
-                        id="contract-address" 
-                        placeholder="0x..." 
-                        pattern="^0x[a-fA-F0-9]{40}$"
+                      <Label htmlFor="tokenSymbol">Token Symbol *</Label>
+                      <Input
+                        id="tokenSymbol"
+                        name="tokenSymbol"
+                        value={formData.tokenSymbol}
+                        onChange={handleChange}
+                        required
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Enter the deployed ERC-20 token contract address on Base network
-                      </p>
                     </div>
-                    
                     <div className="space-y-2">
-                      <Label htmlFor="sale-contract">Sale Contract Address</Label>
-                      <Input 
-                        id="sale-contract" 
-                        placeholder="0x..." 
-                        pattern="^0x[a-fA-F0-9]{40}$"
+                      <Label htmlFor="totalSupply">Total Supply *</Label>
+                      <Input
+                        id="totalSupply"
+                        name="totalSupply"
+                        type="number"
+                        value={formData.totalSupply}
+                        onChange={handleChange}
+                        required
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Enter the ICO sale contract address (if already deployed)
-                      </p>
                     </div>
-                    
                     <div className="space-y-2">
-                      <Label htmlFor="audit-report">Audit Report URL</Label>
-                      <Input id="audit-report" type="url" placeholder="https://..." />
+                      <Label htmlFor="tokenDecimals">Token Decimals *</Label>
+                      <Input
+                        id="tokenDecimals"
+                        name="tokenDecimals"
+                        type="number"
+                        value={formData.tokenDecimals}
+                        onChange={handleChange}
+                        required
+                      />
                     </div>
-                    
-                    <div className="p-4 rounded-lg bg-primary/10 border border-primary/20 space-y-4">
-                      <div>
-                        <h3 className="font-semibold mb-2">Contract Deployment</h3>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          Deploy your ICO contracts directly to Base network. This will create both the ERC20 token contract and the ICO sale contract.
-                        </p>
-                        <Button 
-                          type="button" 
-                          onClick={handleDeploy}
-                          disabled={isDeploying}
-                          className="gap-2"
-                        >
-                          <Rocket className="h-4 w-4" />
-                          {isDeploying ? 'Deploying...' : 'Deploy Contracts'}
-                        </Button>
-                      </div>
-                      
-                      {deploymentResult && (
-                        <Alert>
-                          <AlertDescription className="space-y-3">
-                            <div>
-                              <p className="font-semibold mb-2">✅ Deployment Initiated</p>
-                              <p className="text-sm mb-2">Project ID: {deploymentResult.projectId}</p>
-                            </div>
-                            
-                            <div className="text-sm space-y-1">
-                              <p className="font-semibold">Next Steps:</p>
-                              <ol className="list-decimal list-inside space-y-1 ml-2">
-                                <li>Install dependencies: <code className="bg-muted px-1 rounded">cd contracts && npm install</code></li>
-                                <li>Set up your .env file with private key and RPC URLs</li>
-                                <li>Deploy: <code className="bg-muted px-1 rounded">npm run deploy -- --network baseSepolia</code></li>
-                                <li>Copy the deployed contract addresses and paste them above</li>
-                              </ol>
-                            </div>
-                            
-                            <div className="text-xs bg-muted p-2 rounded overflow-x-auto">
-                              <pre>{deploymentResult.deploymentScript}</pre>
-                            </div>
-                          </AlertDescription>
-                        </Alert>
-                      )}
+                    <div className="space-y-2">
+                      <Label htmlFor="tokenPrice">Token Price (ETH) *</Label>
+                      <Input
+                        id="tokenPrice"
+                        name="tokenPrice"
+                        type="number"
+                        step="0.000001"
+                        value={formData.tokenPrice}
+                        onChange={handleChange}
+                        required
+                      />
                     </div>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-              
-              {/* Submit Button */}
-              <Card className="glass p-6 mt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold mb-1">Ready to Launch?</h3>
+                    <div className="space-y-2">
+                      <Label htmlFor="softCap">Soft Cap (ETH) *</Label>
+                      <Input
+                        id="softCap"
+                        name="softCap"
+                        type="number"
+                        step="0.01"
+                        value={formData.softCap}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="hardCap">Hard Cap (ETH) *</Label>
+                      <Input
+                        id="hardCap"
+                        name="hardCap"
+                        type="number"
+                        step="0.01"
+                        value={formData.hardCap}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="minContribution">Min Contribution (ETH) *</Label>
+                      <Input
+                        id="minContribution"
+                        name="minContribution"
+                        type="number"
+                        step="0.001"
+                        value={formData.minContribution}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="maxContribution">Max Contribution (ETH) *</Label>
+                      <Input
+                        id="maxContribution"
+                        name="maxContribution"
+                        type="number"
+                        step="0.1"
+                        value={formData.maxContribution}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="startDate">Start Date *</Label>
+                      <Input
+                        id="startDate"
+                        name="startDate"
+                        type="datetime-local"
+                        value={formData.startDate}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="endDate">End Date *</Label>
+                      <Input
+                        id="endDate"
+                        name="endDate"
+                        type="datetime-local"
+                        value={formData.endDate}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <Button type="submit" disabled={isDeploying}>
+                      {isDeploying ? 'Generating...' : 'Generate Deployment Instructions'}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => navigate('/admin/projects')}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
+          {step === 'instructions' && deploymentInstructions && (
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Code className="w-5 h-5" />
+                    Deployment Instructions
+                  </CardTitle>
+                  <CardDescription>
+                    Follow these steps to deploy your ICO contracts to Base Sepolia
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="bg-muted p-4 rounded-lg space-y-3">
+                    <h3 className="font-semibold">Step 1: Set Environment Variables</h3>
                     <p className="text-sm text-muted-foreground">
-                      Review all information before submitting. Project will be pending approval.
+                      Create a <code>.env</code> file in the <code>contracts/</code> directory:
+                    </p>
+                    <pre className="bg-background p-3 rounded text-xs overflow-x-auto">
+{`PRIVATE_KEY=your_wallet_private_key_here
+BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
+TOKEN_NAME="${formData.projectName}"
+TOKEN_SYMBOL="${formData.tokenSymbol}"
+INITIAL_SUPPLY="${formData.totalSupply}"
+TOKEN_DECIMALS="${formData.tokenDecimals}"
+TOKEN_PRICE="${formData.tokenPrice}"
+SOFT_CAP="${formData.softCap}"
+HARD_CAP="${formData.hardCap}"
+MIN_CONTRIBUTION="${formData.minContribution}"
+MAX_CONTRIBUTION="${formData.maxContribution}"`}
+                    </pre>
+                  </div>
+
+                  <div className="bg-muted p-4 rounded-lg space-y-3">
+                    <h3 className="font-semibold">Step 2: Deploy Contracts</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Run the following commands in your terminal:
+                    </p>
+                    <pre className="bg-background p-3 rounded text-xs overflow-x-auto">
+{`cd contracts
+npm install
+npx hardhat run scripts/deploy-ico.ts --network baseSepolia`}
+                    </pre>
+                  </div>
+
+                  <div className="bg-muted p-4 rounded-lg space-y-3">
+                    <h3 className="font-semibold">Step 3: Note the Contract Addresses</h3>
+                    <p className="text-sm text-muted-foreground">
+                      After deployment, copy the contract addresses from the terminal output.
+                      You'll need to register them in the next step.
                     </p>
                   </div>
-                  <div className="flex gap-3">
-                    <Button type="button" variant="outline">
-                      Save Draft
+
+                  <div className="flex gap-4">
+                    <Button onClick={() => setStep('register')}>
+                      I've Deployed the Contracts
                     </Button>
-                    <Button type="submit" className="bg-gradient-primary">
-                      Submit
+                    <Button variant="outline" onClick={() => setStep('form')}>
+                      Back to Configuration
                     </Button>
                   </div>
-                </div>
+                </CardContent>
               </Card>
-            </form>
-          </div>
-        </main>
-      </div>
+            </div>
+          )}
+
+          {step === 'register' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5" />
+                  Register Deployed Contracts
+                </CardTitle>
+                <CardDescription>
+                  Enter the deployed contract addresses to activate your ICO
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleRegisterContracts} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="saleAddress">Sale Contract Address *</Label>
+                    <Input
+                      id="saleAddress"
+                      name="saleAddress"
+                      value={deployedAddresses.saleAddress}
+                      onChange={(e) => setDeployedAddresses(prev => ({ ...prev, saleAddress: e.target.value }))}
+                      placeholder="0x..."
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tokenAddress">Token Contract Address *</Label>
+                    <Input
+                      id="tokenAddress"
+                      name="tokenAddress"
+                      value={deployedAddresses.tokenAddress}
+                      onChange={(e) => setDeployedAddresses(prev => ({ ...prev, tokenAddress: e.target.value }))}
+                      placeholder="0x..."
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="kycRegistryAddress">KYC Registry Address (Optional)</Label>
+                    <Input
+                      id="kycRegistryAddress"
+                      name="kycRegistryAddress"
+                      value={deployedAddresses.kycRegistryAddress}
+                      onChange={(e) => setDeployedAddresses(prev => ({ ...prev, kycRegistryAddress: e.target.value }))}
+                      placeholder="0x..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="vestingVaultAddress">Vesting Vault Address (Optional)</Label>
+                    <Input
+                      id="vestingVaultAddress"
+                      name="vestingVaultAddress"
+                      value={deployedAddresses.vestingVaultAddress}
+                      onChange={(e) => setDeployedAddresses(prev => ({ ...prev, vestingVaultAddress: e.target.value }))}
+                      placeholder="0x..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="liquidityLockerAddress">Liquidity Locker Address (Optional)</Label>
+                    <Input
+                      id="liquidityLockerAddress"
+                      name="liquidityLockerAddress"
+                      value={deployedAddresses.liquidityLockerAddress}
+                      onChange={(e) => setDeployedAddresses(prev => ({ ...prev, liquidityLockerAddress: e.target.value }))}
+                      placeholder="0x..."
+                    />
+                  </div>
+
+                  <div className="flex gap-4">
+                    <Button type="submit">
+                      Register Contracts & Launch ICO
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setStep('instructions')}>
+                      Back to Instructions
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </main>
     </div>
   );
-};
-
-export default CreateICO;
+}
