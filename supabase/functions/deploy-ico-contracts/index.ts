@@ -144,17 +144,25 @@ serve(async (req) => {
     const response = {
       success: true,
       projectId: project.id,
-      message: 'Contracts deployed successfully!',
-      deployedAddresses: {
+      message: 'ICO project created successfully! Ready for contract deployment.',
+      notice: 'Contract addresses are currently placeholders. Deploy real contracts using hardhat - see /contracts/DEPLOYMENT_GUIDE.md',
+      deploymentSteps: [
+        '1. ICO project created in database ✅',
+        '2. Next: Deploy contracts using hardhat (cd contracts && npx hardhat run scripts/deploy-ico.ts --network baseSepolia)',
+        '3. After deployment: Update contract addresses via API or database',
+      ],
+      placeholderAddresses: {
         token: tokenAddress,
         sale: saleAddress,
       },
-      explorerUrls: {
-        token: `https://sepolia.basescan.org/address/${tokenAddress}`,
-        sale: `https://sepolia.basescan.org/address/${saleAddress}`,
+      projectDetails: {
+        name: deploymentData.projectName,
+        symbol: deploymentData.tokenSymbol,
+        totalSupply: deploymentData.totalSupply,
+        hardCap: deploymentData.hardCap,
+        softCap: deploymentData.softCap,
       },
       deployer: wallet.address,
-      network: 'Base Sepolia',
       timestamp: new Date().toISOString(),
     };
 
