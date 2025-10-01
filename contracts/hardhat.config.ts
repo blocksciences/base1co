@@ -5,6 +5,9 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 const config: HardhatUserConfig = {
+  paths: {
+    sources: "./",
+  },
   solidity: {
     version: "0.8.20",
     settings: {
