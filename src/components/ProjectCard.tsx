@@ -29,7 +29,7 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
   
   return (
     <Card className="group relative overflow-hidden glass hover:shadow-glow-cyan transition-all duration-300 border-border/50">
-      <div className="absolute inset-0 bg-gradient-cyber opacity-0 group-hover:opacity-10 transition-opacity" />
+      <div className="absolute inset-0 bg-gradient-cyber opacity-0 group-hover:opacity-10 transition-opacity pointer-events-none" />
       
       <div className="p-6 space-y-4">
         {/* Header */}
@@ -97,7 +97,11 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
         </div>
         
         {/* CTA */}
-        <Link to={`/project/${project.id}`} className="block">
+        <Link 
+          to={`/project/${project.id}`} 
+          className="block"
+          onClick={() => console.log('Navigating to project:', project.id)}
+        >
           <Button className="w-full bg-gradient-primary hover:opacity-90 transition-opacity">
             View Details
           </Button>
