@@ -73,9 +73,17 @@ serve(async (req) => {
       throw new Error('Insufficient ETH balance. Please fund the deployer wallet.');
     }
 
-    // Convert parameters
+    // Convert parameters - ensure times are properly parsed as UTC
     const startTime = Math.floor(new Date(deploymentData.startDate).getTime() / 1000);
     const endTime = Math.floor(new Date(deploymentData.endDate).getTime() / 1000);
+    const currentTime = Math.floor(Date.now() / 1000);
+    
+    // Add 5 minute buffer to ensure start time is in the future
+    const minStartTime = currentTime + 300; // 5 minutes from now
+    
+    if (startTime < minStartTime) {
+      throw new Error(`Start time must be at least 5 minutes in the future. Current time: ${new Date(currentTime * 1000).toISOString()}, Your start time: ${new Date(startTime * 1000).toISOString()}`);
+    }
 
     console.log('\n📦 Deploying contracts...\n');
 

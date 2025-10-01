@@ -13,6 +13,14 @@ export default function CreateICO() {
   const navigate = useNavigate();
   const { deployContracts, isDeploying } = useContractDeployment();
   const [deploymentResult, setDeploymentResult] = useState<any>(null);
+  
+  // Calculate minimum start date (30 minutes from now)
+  const getMinStartDate = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 30);
+    return now.toISOString().slice(0, 16);
+  };
+  
   const [formData, setFormData] = useState<DeploymentParams>({
     projectName: '',
     tokenSymbol: '',
@@ -280,8 +288,12 @@ export default function CreateICO() {
                       type="datetime-local"
                       value={formData.startDate}
                       onChange={handleChange}
+                      min={getMinStartDate()}
                       required
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Must be at least 30 minutes in the future (UTC timezone)
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="endDate">End Date *</Label>
@@ -291,8 +303,12 @@ export default function CreateICO() {
                       type="datetime-local"
                       value={formData.endDate}
                       onChange={handleChange}
+                      min={formData.startDate || getMinStartDate()}
                       required
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Must be after start date
+                    </p>
                   </div>
                 </div>
 
