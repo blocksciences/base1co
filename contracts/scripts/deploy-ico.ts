@@ -18,11 +18,15 @@ async function main() {
   const MIN_CONTRIBUTION = ethers.parseEther(process.env.MIN_CONTRIBUTION || "0.1");
   const MAX_CONTRIBUTION = ethers.parseEther(process.env.MAX_CONTRIBUTION || "100");
   const MAX_PER_WALLET = ethers.parseEther(process.env.MAX_PER_WALLET || "100");
-  const LAUNCHPAD_ADDRESS = process.env.LAUNCHPAD_ADDRESS || "";
+  const LAUNCHPAD_ADDRESS = process.env.LAUNCHPAD_ADDRESS || process.env.ICO_LAUNCHPAD_ADDRESS || "";
   
-  // Sale times (default: start in 1 hour, end in 30 days)
-  const START_TIME = Math.floor(Date.now() / 1000) + 3600; // Start in 1 hour
-  const END_TIME = START_TIME + (30 * 24 * 60 * 60); // 30 days
+  // Sale times - use environment variables if provided, otherwise default to 1 hour start + 30 days duration
+  const START_TIME = process.env.START_TIME 
+    ? parseInt(process.env.START_TIME) 
+    : Math.floor(Date.now() / 1000) + 3600; // Default: Start in 1 hour
+  const END_TIME = process.env.END_TIME 
+    ? parseInt(process.env.END_TIME)
+    : START_TIME + (30 * 24 * 60 * 60); // Default: 30 days from start
 
   // 1. Deploy KYC Registry
   console.log("\n1. Deploying KYCRegistry...");
