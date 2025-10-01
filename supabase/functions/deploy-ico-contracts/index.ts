@@ -47,19 +47,44 @@ serve(async (req) => {
 
     // Get deployment credentials from secrets
     const privateKey = Deno.env.get('DEPLOYER_PRIVATE_KEY');
-    const rpcUrl = Deno.env.get('BASE_SEPOLIA_RPC_URL') || 'https://sepolia.base.org';
+    const rpcUrl = Deno.env.get('BASE_SEPOLIA_RPC_URL');
 
     if (!privateKey) {
-      throw new Error('DEPLOYER_PRIVATE_KEY not configured');
+      throw new Error('DEPLOYER_PRIVATE_KEY not configured. Please add it in project settings.');
+    }
+
+    if (!rpcUrl) {
+      throw new Error('BASE_SEPOLIA_RPC_URL not configured. Please add a valid Base Sepolia RPC URL (e.g., from Alchemy, Infura, or public endpoints).');
     }
 
     console.log('Connecting to Base Sepolia...');
-    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    console.log('RPC URL:', rpcUrl);
+    
+    let provider;
+    try {
+      provider = new ethers.JsonRpcProvider(rpcUrl);
+      // Test the connection
+      await provider.getNetwork();
+      console.log('✅ Successfully connected to Base Sepolia');
+    } catch (error) {
+      console.error('Failed to connect to RPC:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to connect to Base Sepolia RPC. Please verify your BASE_SEPOLIA_RPC_URL is correct. Error: ${errorMessage}`);
+    }
+
     const wallet = new ethers.Wallet(privateKey, provider);
     
     console.log('Deployer wallet:', wallet.address);
-    const balance = await provider.getBalance(wallet.address);
-    console.log('Deployer balance:', ethers.formatEther(balance), 'ETH');
+    
+    let balance;
+    try {
+      balance = await provider.getBalance(wallet.address);
+      console.log('Deployer balance:', ethers.formatEther(balance), 'ETH');
+    } catch (error) {
+      console.error('Failed to get balance:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to get wallet balance. RPC connection issue: ${errorMessage}`);
+    }
 
     if (balance === 0n) {
       throw new Error('Deployer wallet has no ETH. Please fund it with Base Sepolia ETH.');
