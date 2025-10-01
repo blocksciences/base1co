@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { ethers } from "https://esm.sh/ethers@6.7.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,6 +21,12 @@ interface DeploymentRequest {
   endDate: string;
   deployerAddress: string;
 }
+
+// ICOLaunchpad ABI (only the deploySale function we need)
+const LAUNCHPAD_ABI = [
+  "function deploySale(string memory tokenName, string memory tokenSymbol, uint256 initialSupply, uint8 tokenDecimals, uint256 tokenPrice, uint256 softCap, uint256 hardCap, uint256 minContribution, uint256 maxContribution, uint256 maxPerWallet, uint256 startTime, uint256 endTime) external returns (uint256 saleId)",
+  "function sales(uint256 saleId) external view returns (address saleContract, address tokenContract, address kycRegistry, address vestingVault, address liquidityLocker, address creator, uint256 deployedAt, bool active)"
+];
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -44,18 +51,116 @@ serve(async (req) => {
     
     console.log('Deployment request:', deploymentData);
 
-    // This edge function now ONLY creates the database record
-    // No contract deployment happens here - that's done via hardhat separately
-    console.log('Creating ICO project record in database...');
+    // Get deployment credentials from secrets
+    const privateKey = Deno.env.get('DEPLOYER_PRIVATE_KEY');
+    const rpcUrl = Deno.env.get('BASE_SEPOLIA_RPC_URL');
+    const launchpadAddress = Deno.env.get('ICO_LAUNCHPAD_ADDRESS');
+
+    if (!privateKey) {
+      throw new Error('DEPLOYER_PRIVATE_KEY not configured. Please add it in project settings.');
+    }
+
+    if (!rpcUrl) {
+      throw new Error('BASE_SEPOLIA_RPC_URL not configured. Please add a valid Base Sepolia RPC URL.');
+    }
+
+    if (!launchpadAddress) {
+      throw new Error('ICO_LAUNCHPAD_ADDRESS not configured. Please deploy the launchpad factory first using: cd contracts && npx hardhat run scripts/deploy-launchpad.ts --network baseSepolia');
+    }
+
+    console.log('Connecting to Base Sepolia...');
+    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    await provider.getNetwork();
+    console.log('✅ Connected to Base Sepolia');
+
+    const wallet = new ethers.Wallet(privateKey, provider);
+    console.log('Deployer wallet:', wallet.address);
     
-    // Generate placeholder addresses for the project
-    const placeholderTokenAddress = `0x${Math.random().toString(16).slice(2, 42).padStart(40, '0')}`;
-    const placeholderSaleAddress = `0x${Math.random().toString(16).slice(2, 42).padStart(40, '0')}`;
+    const balance = await provider.getBalance(wallet.address);
+    console.log('Deployer balance:', ethers.formatEther(balance), 'ETH');
+
+    if (balance === 0n) {
+      throw new Error('Deployer wallet has no ETH. Please fund it with Base Sepolia ETH from https://www.alchemy.com/faucets/base-sepolia');
+    }
+
+    // Connect to the ICOLaunchpad factory contract
+    console.log('Connecting to ICOLaunchpad at:', launchpadAddress);
+    const launchpad = new ethers.Contract(launchpadAddress, LAUNCHPAD_ABI, wallet);
+
+    // Convert parameters to proper format
+    const startTime = Math.floor(new Date(deploymentData.startDate).getTime() / 1000);
+    const endTime = Math.floor(new Date(deploymentData.endDate).getTime() / 1000);
     
-    console.log('Placeholder token address:', placeholderTokenAddress);
-    console.log('Placeholder sale address:', placeholderSaleAddress);
+    console.log('Deploying ICO via launchpad...');
+    console.log('Parameters:', {
+      tokenName: deploymentData.projectName,
+      tokenSymbol: deploymentData.tokenSymbol,
+      supply: deploymentData.totalSupply,
+      decimals: deploymentData.tokenDecimals,
+      price: deploymentData.tokenPrice,
+      softCap: deploymentData.softCap,
+      hardCap: deploymentData.hardCap,
+      startTime,
+      endTime
+    });
+
+    // Deploy ICO through the launchpad factory
+    const tx = await launchpad.deploySale(
+      deploymentData.projectName,
+      deploymentData.tokenSymbol,
+      ethers.parseUnits(deploymentData.totalSupply, deploymentData.tokenDecimals),
+      deploymentData.tokenDecimals,
+      ethers.parseEther(deploymentData.tokenPrice),
+      ethers.parseEther(deploymentData.softCap),
+      ethers.parseEther(deploymentData.hardCap),
+      ethers.parseEther(deploymentData.minContribution),
+      ethers.parseEther(deploymentData.maxContribution),
+      ethers.parseEther(deploymentData.maxContribution), // maxPerWallet same as maxContribution
+      startTime,
+      endTime
+    );
+
+    console.log('Transaction sent:', tx.hash);
+    console.log('Waiting for confirmation...');
     
-    // Create deployment record in database with contract addresses
+    const receipt = await tx.wait();
+    console.log('✅ Transaction confirmed!');
+
+    // Get the saleId from the event
+    const saleDeployedEvent = receipt.logs.find((log: any) => {
+      try {
+        const parsed = launchpad.interface.parseLog(log);
+        return parsed?.name === 'SaleDeployed';
+      } catch {
+        return false;
+      }
+    });
+
+    if (!saleDeployedEvent) {
+      throw new Error('Could not find SaleDeployed event in transaction');
+    }
+
+    const parsedEvent = launchpad.interface.parseLog(saleDeployedEvent);
+    const saleId = parsedEvent?.args?.saleId;
+
+    // Get the deployed contract addresses
+    const saleInfo = await launchpad.sales(saleId);
+    
+    const tokenAddress = saleInfo.tokenContract;
+    const saleAddress = saleInfo.saleContract;
+    const kycRegistryAddress = saleInfo.kycRegistry;
+    const vestingVaultAddress = saleInfo.vestingVault;
+    const liquidityLockerAddress = saleInfo.liquidityLocker;
+
+    console.log('✅ ICO Deployed!');
+    console.log('Sale ID:', saleId.toString());
+    console.log('Token:', tokenAddress);
+    console.log('Sale:', saleAddress);
+    console.log('KYC Registry:', kycRegistryAddress);
+    console.log('Vesting Vault:', vestingVaultAddress);
+    console.log('Liquidity Locker:', liquidityLockerAddress);
+    
+    // Create deployment record in database
     const { data: project, error: projectError } = await supabaseClient
       .from('projects')
       .insert({
@@ -67,7 +172,10 @@ serve(async (req) => {
         end_date: deploymentData.endDate,
         status: 'active',
         created_by: deploymentData.deployerAddress,
-        contract_address: placeholderSaleAddress,
+        contract_address: saleAddress,
+        kyc_registry_address: kycRegistryAddress,
+        vesting_vault_address: vestingVaultAddress,
+        liquidity_locker_address: liquidityLockerAddress,
       })
       .select()
       .single();
@@ -76,20 +184,23 @@ serve(async (req) => {
       throw projectError;
     }
 
-    // Log successful project creation
+    // Log successful deployment
     await supabaseClient
       .from('platform_activities')
       .insert({
         activity_type: 'contract_deployment',
-        action_text: `Created ICO project for ${deploymentData.projectName}`,
+        action_text: `Successfully deployed ICO contracts for ${deploymentData.projectName}`,
         status: 'completed',
         user_address: deploymentData.deployerAddress,
         metadata: {
           project_id: project.id,
-          token_address: placeholderTokenAddress,
-          sale_address: placeholderSaleAddress,
-          token_symbol: deploymentData.tokenSymbol,
-          hard_cap: deploymentData.hardCap,
+          sale_id: saleId.toString(),
+          token_address: tokenAddress,
+          sale_address: saleAddress,
+          kyc_registry: kycRegistryAddress,
+          vesting_vault: vestingVaultAddress,
+          liquidity_locker: liquidityLockerAddress,
+          tx_hash: tx.hash,
         },
       });
 
@@ -97,25 +208,23 @@ serve(async (req) => {
     const response = {
       success: true,
       projectId: project.id,
-      message: 'ICO project created successfully! Ready for contract deployment.',
-      notice: 'Contract addresses are currently placeholders. Deploy real contracts using hardhat - see /contracts/DEPLOYMENT_GUIDE.md',
-      deploymentSteps: [
-        '1. ICO project created in database ✅',
-        '2. Next: Deploy contracts using hardhat (cd contracts && npx hardhat run scripts/deploy-ico.ts --network baseSepolia)',
-        '3. After deployment: Update contract addresses via API or database',
-      ],
-      placeholderAddresses: {
-        token: placeholderTokenAddress,
-        sale: placeholderSaleAddress,
+      message: 'ICO contracts deployed successfully!',
+      saleId: saleId.toString(),
+      deployedAddresses: {
+        token: tokenAddress,
+        sale: saleAddress,
+        kycRegistry: kycRegistryAddress,
+        vestingVault: vestingVaultAddress,
+        liquidityLocker: liquidityLockerAddress,
       },
-      projectDetails: {
-        name: deploymentData.projectName,
-        symbol: deploymentData.tokenSymbol,
-        totalSupply: deploymentData.totalSupply,
-        hardCap: deploymentData.hardCap,
-        softCap: deploymentData.softCap,
+      explorerUrls: {
+        token: `https://sepolia.basescan.org/address/${tokenAddress}`,
+        sale: `https://sepolia.basescan.org/address/${saleAddress}`,
       },
-      deployer: deploymentData.deployerAddress,
+      transactionHash: tx.hash,
+      explorerTx: `https://sepolia.basescan.org/tx/${tx.hash}`,
+      deployer: wallet.address,
+      network: 'Base Sepolia',
       timestamp: new Date().toISOString(),
     };
 
