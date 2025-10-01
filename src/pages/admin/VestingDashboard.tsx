@@ -6,13 +6,29 @@ import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, Download, Filter } from "lucide-react";
+import { Clock, Download, Filter, Plus } from "lucide-react";
 import { format } from "date-fns";
+import { CreateVestingModal } from "@/components/admin/CreateVestingModal";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function VestingDashboard() {
   const [filterType, setFilterType] = useState<string>("all");
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
 
-  const { data: vestingSchedules, isLoading } = useQuery({
+  const { data: projects } = useQuery({
+    queryKey: ['admin-projects'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id, name, symbol')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: vestingSchedules, isLoading, refetch } = useQuery({
     queryKey: ['admin-vesting-schedules', filterType],
     queryFn: async () => {
       let query = supabase
@@ -52,6 +68,28 @@ export default function VestingDashboard() {
               <div>
                 <h1 className="text-3xl font-bold mb-2">Vesting Dashboard</h1>
                 <p className="text-muted-foreground">Monitor and manage token vesting schedules</p>
+              </div>
+              <div className="flex gap-2">
+                <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Select project" />
+                  </SelectTrigger>
+                  <SelectContent className="glass">
+                    {projects?.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button 
+                  onClick={() => setCreateModalOpen(true)}
+                  disabled={!selectedProjectId}
+                  className="bg-gradient-primary gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Create Schedule
+                </Button>
               </div>
             </div>
 
@@ -213,6 +251,13 @@ export default function VestingDashboard() {
           </div>
         </main>
       </div>
+      
+      <CreateVestingModal
+        open={createModalOpen}
+        onOpenChange={setCreateModalOpen}
+        projectId={selectedProjectId}
+        onSuccess={() => refetch()}
+      />
     </div>
   );
 }

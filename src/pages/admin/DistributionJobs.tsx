@@ -5,13 +5,28 @@ import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Package, Download, PlayCircle } from "lucide-react";
+import { Package, Download, PlayCircle, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function DistributionJobs() {
   const [creating, setCreating] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+
+  const { data: projects } = useQuery({
+    queryKey: ['admin-projects-for-distribution'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id, name, symbol, status')
+        .eq('status', 'live')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const { data: jobs, refetch } = useQuery({
     queryKey: ['distribution-jobs'],
@@ -28,17 +43,23 @@ export default function DistributionJobs() {
     },
   });
 
-  const handleCreateJob = async (projectId: string) => {
+  const handleCreateJob = async () => {
+    if (!selectedProjectId) {
+      toast.error('Please select a project');
+      return;
+    }
+    
     setCreating(true);
     try {
       const { data, error } = await supabase.functions.invoke('batch-distribution', {
-        body: { projectId },
+        body: { projectId: selectedProjectId },
       });
 
       if (error) throw error;
 
       toast.success(`Distribution job created with ${data.batches.length} batches`);
       refetch();
+      setSelectedProjectId('');
     } catch (error: any) {
       toast.error(error.message || 'Failed to create distribution job');
     } finally {
@@ -64,6 +85,28 @@ export default function DistributionJobs() {
               <div>
                 <h1 className="text-3xl font-bold mb-2">Distribution Jobs</h1>
                 <p className="text-muted-foreground">Batch token distribution management</p>
+              </div>
+              <div className="flex gap-2">
+                <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                  <SelectTrigger className="w-[250px]">
+                    <SelectValue placeholder="Select project to distribute" />
+                  </SelectTrigger>
+                  <SelectContent className="glass">
+                    {projects?.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name} ({project.symbol})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button 
+                  onClick={handleCreateJob}
+                  disabled={creating || !selectedProjectId}
+                  className="bg-gradient-primary gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  {creating ? 'Creating...' : 'Create Distribution Job'}
+                </Button>
               </div>
             </div>
 
