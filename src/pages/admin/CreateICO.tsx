@@ -42,6 +42,33 @@ export default function CreateICO() {
 
   const handleDeploy = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Client-side validation
+    const softCap = parseFloat(formData.softCap);
+    const hardCap = parseFloat(formData.hardCap);
+    const minContribution = parseFloat(formData.minContribution);
+    const maxContribution = parseFloat(formData.maxContribution);
+    
+    if (softCap >= hardCap) {
+      toast.error('Soft cap must be less than hard cap');
+      return;
+    }
+    
+    if (minContribution > maxContribution) {
+      toast.error('Min contribution cannot exceed max contribution');
+      return;
+    }
+    
+    // Check ICO duration
+    const start = new Date(formData.startDate);
+    const end = new Date(formData.endDate);
+    const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+    
+    if (durationHours < 24) {
+      toast.error('ICO must run for at least 24 hours');
+      return;
+    }
+    
     const result = await deployContracts(formData);
     if (result) {
       setDeploymentResult(result);
@@ -240,6 +267,9 @@ export default function CreateICO() {
                       placeholder="100"
                       required
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Must be less than hard cap
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="hardCap">Hard Cap (ETH) *</Label>
@@ -253,6 +283,9 @@ export default function CreateICO() {
                       placeholder="1000"
                       required
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Maximum amount to raise
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="minContribution">Min Contribution (ETH) *</Label>
@@ -266,6 +299,9 @@ export default function CreateICO() {
                       placeholder="1"
                       required
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Must be less than max contribution
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="maxContribution">Max Contribution (ETH) *</Label>
@@ -279,6 +315,9 @@ export default function CreateICO() {
                       placeholder="10"
                       required
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Per wallet limit
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="startDate">Start Date *</Label>

@@ -66,100 +66,187 @@ serve(async (req) => {
     const wallet = new ethers.Wallet(privateKey, provider);
     console.log('Deployer:', wallet.address);
 
+    // Validate network
+    const network = await provider.getNetwork();
+    const expectedChainId = 84532n; // Base Sepolia
+    if (network.chainId !== expectedChainId) {
+      throw new Error(`Wrong network. Expected Base Sepolia (${expectedChainId}), got ${network.chainId}`);
+    }
+
+    // Check balance
     const balance = await provider.getBalance(wallet.address);
     console.log('Balance:', ethers.formatEther(balance), 'ETH');
 
-    if (balance === 0n) {
-      throw new Error('Insufficient ETH balance. Please fund the deployer wallet.');
+    const minRequired = ethers.parseEther('0.05');
+    if (balance < minRequired) {
+      throw new Error(`Insufficient ETH balance. Have: ${ethers.formatEther(balance)} ETH, Need at least 0.05 ETH for deployment`);
     }
 
-    // Convert parameters - ensure times are properly parsed as UTC
+    // Validate tokenomics
+    const softCap = parseFloat(deploymentData.softCap);
+    const hardCap = parseFloat(deploymentData.hardCap);
+    const minContribution = parseFloat(deploymentData.minContribution);
+    const maxContribution = parseFloat(deploymentData.maxContribution);
+    const tokenPrice = parseFloat(deploymentData.tokenPrice);
+    const totalSupply = parseFloat(deploymentData.totalSupply);
+
+    // Soft cap must be less than hard cap
+    if (softCap >= hardCap) {
+      throw new Error('Soft cap must be less than hard cap');
+    }
+
+    // Min must be less than max contribution
+    if (minContribution > maxContribution) {
+      throw new Error('Min contribution cannot exceed max contribution');
+    }
+
+    // Warn if max contribution is too restrictive
+    const minInvestorsNeeded = Math.ceil(hardCap / maxContribution);
+    if (minInvestorsNeeded > 100) {
+      console.warn(`⚠️ Will require at least ${minInvestorsNeeded} investors to reach hard cap`);
+    }
+
+    // Check if tokenomics make sense
+    const tokensForSale = totalSupply * 0.4; // 40% allocated to sale
+    const impliedMaxRaise = tokensForSale * tokenPrice;
+    if (impliedMaxRaise < hardCap) {
+      throw new Error(`Token price too low for hard cap target. At current price, max raise would be ${impliedMaxRaise.toFixed(4)} ETH, but hard cap is ${hardCap} ETH`);
+    }
+
+    // Convert and validate dates
     const startTime = Math.floor(new Date(deploymentData.startDate).getTime() / 1000);
     const endTime = Math.floor(new Date(deploymentData.endDate).getTime() / 1000);
     const currentTime = Math.floor(Date.now() / 1000);
     
-    // Add 5 minute buffer to ensure start time is in the future
-    const minStartTime = currentTime + 300; // 5 minutes from now
-    
+    // Start time must be at least 5 minutes in the future
+    const minStartTime = currentTime + 300;
     if (startTime < minStartTime) {
       throw new Error(`Start time must be at least 5 minutes in the future. Current time: ${new Date(currentTime * 1000).toISOString()}, Your start time: ${new Date(startTime * 1000).toISOString()}`);
     }
 
+    // End must be after start
+    if (endTime <= startTime) {
+      throw new Error('End date must be after start date');
+    }
+
+    // Minimum ICO duration: 24 hours
+    const minDuration = 24 * 60 * 60; // 24 hours in seconds
+    if (endTime - startTime < minDuration) {
+      throw new Error('ICO must run for at least 24 hours');
+    }
+
     console.log('\n📦 Deploying contracts...\n');
+
+    // Helper function to deploy with retry logic
+    async function deployWithRetry(deployFunction: () => Promise<any>, contractName: string, maxRetries = 3) {
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          return await deployFunction();
+        } catch (error: any) {
+          const isRateLimited = error.code === 'RATE_LIMITED' || 
+                               error.code === 429 || 
+                               error.message?.includes('rate limit') ||
+                               error.message?.includes('too many requests');
+          
+          if (isRateLimited && attempt < maxRetries) {
+            const waitTime = attempt * 2;
+            console.log(`⚠️ Rate limited deploying ${contractName}, retrying in ${waitTime} seconds... (attempt ${attempt}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
+            continue;
+          }
+          throw error;
+        }
+      }
+    }
 
     // 1. Deploy KYC Registry
     console.log('1/5 Deploying KYC Registry...');
-    const KYCFactory = new ethers.ContractFactory(
-      contractArtifacts.KYCRegistry.abi,
-      contractArtifacts.KYCRegistry.bytecode,
-      wallet
-    );
-    const kycRegistry = await KYCFactory.deploy();
-    await kycRegistry.waitForDeployment();
+    const kycRegistry = await deployWithRetry(async () => {
+      const KYCFactory = new ethers.ContractFactory(
+        contractArtifacts.KYCRegistry.abi,
+        contractArtifacts.KYCRegistry.bytecode,
+        wallet
+      );
+      const contract = await KYCFactory.deploy();
+      await contract.waitForDeployment();
+      return contract;
+    }, 'KYC Registry');
     const kycAddress = await kycRegistry.getAddress();
     console.log('✅ KYC Registry:', kycAddress);
 
     // 2. Deploy Token
     console.log('\n2/5 Deploying Token...');
-    const TokenFactory = new ethers.ContractFactory(
-      contractArtifacts.ICOToken.abi,
-      contractArtifacts.ICOToken.bytecode,
-      wallet
-    );
-    const token = await TokenFactory.deploy(
-      deploymentData.projectName,      // name
-      deploymentData.tokenSymbol,      // symbol
-      BigInt(deploymentData.totalSupply), // initialSupply (raw number, contract will multiply by decimals)
-      deploymentData.tokenDecimals     // decimals
-    );
-    await token.waitForDeployment();
+    const token = await deployWithRetry(async () => {
+      const TokenFactory = new ethers.ContractFactory(
+        contractArtifacts.ICOToken.abi,
+        contractArtifacts.ICOToken.bytecode,
+        wallet
+      );
+      const contract = await TokenFactory.deploy(
+        deploymentData.projectName,
+        deploymentData.tokenSymbol,
+        BigInt(deploymentData.totalSupply),
+        deploymentData.tokenDecimals
+      );
+      await contract.waitForDeployment();
+      return contract;
+    }, 'Token');
     const tokenAddress = await token.getAddress();
     console.log('✅ Token:', tokenAddress);
 
     // 3. Deploy Sale Contract
     console.log('\n3/5 Deploying Sale Contract...');
-    const SaleFactory = new ethers.ContractFactory(
-      contractArtifacts.ICOSale.abi,
-      contractArtifacts.ICOSale.bytecode,
-      wallet
-    );
-    const sale = await SaleFactory.deploy(
-      tokenAddress,
-      kycAddress,
-      ethers.parseEther(deploymentData.tokenPrice),
-      ethers.parseEther(deploymentData.softCap),
-      ethers.parseEther(deploymentData.hardCap),
-      ethers.parseEther(deploymentData.minContribution),
-      ethers.parseEther(deploymentData.maxContribution),
-      ethers.parseEther(deploymentData.maxContribution), // maxPerWallet
-      startTime,
-      endTime
-    );
-    await sale.waitForDeployment();
+    const sale = await deployWithRetry(async () => {
+      const SaleFactory = new ethers.ContractFactory(
+        contractArtifacts.ICOSale.abi,
+        contractArtifacts.ICOSale.bytecode,
+        wallet
+      );
+      const contract = await SaleFactory.deploy(
+        tokenAddress,
+        kycAddress,
+        ethers.parseEther(deploymentData.tokenPrice),
+        ethers.parseEther(deploymentData.softCap),
+        ethers.parseEther(deploymentData.hardCap),
+        ethers.parseEther(deploymentData.minContribution),
+        ethers.parseEther(deploymentData.maxContribution),
+        ethers.parseEther(deploymentData.maxContribution),
+        startTime,
+        endTime
+      );
+      await contract.waitForDeployment();
+      return contract;
+    }, 'Sale Contract');
     const saleAddress = await sale.getAddress();
     console.log('✅ Sale Contract:', saleAddress);
 
     // 4. Deploy Vesting Vault
     console.log('\n4/5 Deploying Vesting Vault...');
-    const VestingFactory = new ethers.ContractFactory(
-      contractArtifacts.VestingVault.abi,
-      contractArtifacts.VestingVault.bytecode,
-      wallet
-    );
-    const vestingVault = await VestingFactory.deploy(tokenAddress);
-    await vestingVault.waitForDeployment();
+    const vestingVault = await deployWithRetry(async () => {
+      const VestingFactory = new ethers.ContractFactory(
+        contractArtifacts.VestingVault.abi,
+        contractArtifacts.VestingVault.bytecode,
+        wallet
+      );
+      const contract = await VestingFactory.deploy(tokenAddress);
+      await contract.waitForDeployment();
+      return contract;
+    }, 'Vesting Vault');
     const vestingAddress = await vestingVault.getAddress();
     console.log('✅ Vesting Vault:', vestingAddress);
 
     // 5. Deploy Liquidity Locker
     console.log('\n5/5 Deploying Liquidity Locker...');
-    const LockerFactory = new ethers.ContractFactory(
-      contractArtifacts.LiquidityLocker.abi,
-      contractArtifacts.LiquidityLocker.bytecode,
-      wallet
-    );
-    const liquidityLocker = await LockerFactory.deploy();
-    await liquidityLocker.waitForDeployment();
+    const liquidityLocker = await deployWithRetry(async () => {
+      const LockerFactory = new ethers.ContractFactory(
+        contractArtifacts.LiquidityLocker.abi,
+        contractArtifacts.LiquidityLocker.bytecode,
+        wallet
+      );
+      const contract = await LockerFactory.deploy();
+      await contract.waitForDeployment();
+      return contract;
+    }, 'Liquidity Locker');
     const lockerAddress = await liquidityLocker.getAddress();
     console.log('✅ Liquidity Locker:', lockerAddress);
 
