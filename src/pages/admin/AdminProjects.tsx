@@ -22,6 +22,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { EditProjectModal } from '@/components/admin/EditProjectModal';
 import { useProjects as useAdminProjects } from '@/hooks/useAdminData';
+import { ProjectRowWithBlockchain } from '@/components/admin/ProjectRowWithBlockchain';
 import { supabase } from '@/integrations/supabase/client';
 import {
   AlertDialog,
@@ -225,131 +226,19 @@ export const AdminProjects = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredProjects.map((project) => {
-                    const raised = Number(project.raised_amount || 0) / 1000000;
-                    const goal = Number(project.goal_amount || 1) / 1000000;
-                    
-                    return (
-                      <tr key={project.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
-                        <td className="p-4">
-                          <div>
-                            <p className="font-semibold">{project.name}</p>
-                            <p className="text-sm text-muted-foreground">{project.symbol}</p>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <Badge className={
-                            project.status === 'live' ? 'bg-success' :
-                            project.status === 'pending' ? 'bg-secondary' :
-                            project.status === 'upcoming' ? 'bg-primary' :
-                            project.status === 'ended' ? 'bg-muted' :
-                            'bg-destructive'
-                          }>
-                            {project.status}
-                          </Badge>
-                        </td>
-                        <td className="p-4">
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between text-sm">
-                              <span>{project.progress_percentage}%</span>
-                            </div>
-                            <div className="h-2 bg-muted rounded-full overflow-hidden w-24">
-                              <div 
-                                className="h-full bg-gradient-primary"
-                                style={{ width: `${Math.min(project.progress_percentage, 100)}%` }}
-                              />
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <div>
-                            <p className="font-semibold">${raised.toFixed(2)}M</p>
-                            <p className="text-xs text-muted-foreground">of ${goal.toFixed(2)}M</p>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <p className="font-semibold">{project.participants_count.toLocaleString()}</p>
-                        </td>
-                        <td className="p-4">
-                          <div className="text-sm">
-                            <p className="text-muted-foreground">{new Date(project.start_date).toLocaleDateString()}</p>
-                            <p className="text-muted-foreground">{new Date(project.end_date).toLocaleDateString()}</p>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex items-center justify-end gap-2">
-                            {project.status === 'pending' && (
-                              <>
-                                <Button 
-                                  size="sm" 
-                                  variant="default" 
-                                  className="bg-success hover:bg-success/90"
-                                  onClick={() => handleApprove(project.id)}
-                                >
-                                  <CheckCircle2 className="h-4 w-4 mr-1" />
-                                  Approve
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="destructive"
-                                  onClick={() => handleReject(project.id)}
-                                >
-                                  <XCircle className="h-4 w-4 mr-1" />
-                                  Reject
-                                </Button>
-                              </>
-                            )}
-                            {project.status === 'live' && (
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => handlePause(project.id)}
-                              >
-                                <Pause className="h-4 w-4 mr-1" />
-                                Pause
-                              </Button>
-                            )}
-                            {project.status === 'paused' && (
-                              <Button 
-                                size="sm" 
-                                variant="default"
-                                className="bg-success hover:bg-success/90"
-                                onClick={() => handleActivate(project.id)}
-                              >
-                                <Play className="h-4 w-4 mr-1" />
-                                Activate
-                              </Button>
-                            )}
-                            <Button 
-                              size="icon" 
-                              variant="ghost" 
-                              title="View"
-                              onClick={() => handleView(project.id)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              size="icon" 
-                              variant="ghost" 
-                              title="Edit"
-                              onClick={() => handleEdit(project.id)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              size="icon" 
-                              variant="ghost" 
-                              title="Delete" 
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => confirmDelete(project.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {filteredProjects.map((project) => (
+                    <ProjectRowWithBlockchain
+                      key={project.id}
+                      project={project}
+                      onView={handleView}
+                      onEdit={handleEdit}
+                      onDelete={confirmDelete}
+                      onApprove={handleApprove}
+                      onReject={handleReject}
+                      onPause={handlePause}
+                      onActivate={handleActivate}
+                    />
+                  ))}
                 </tbody>
               </table>
             </div>

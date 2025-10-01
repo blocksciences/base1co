@@ -25,6 +25,34 @@ const ICO_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    inputs: [],
+    name: 'fundsRaised',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'hardCap',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'softCap',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'getContributorCount',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 ] as const;
 
 export const useICOContract = (contractAddress: string) => {
@@ -145,21 +173,63 @@ export const useICOContract = (contractAddress: string) => {
     }
 
     try {
-      // Read user contribution from contract
-      // Note: Contract must implement contributions(address) view function
-      // Uncomment when contract is deployed with this functionality:
-      // const contribution = await publicClient.readContract({
-      //   address: contractAddress as `0x${string}`,
-      //   abi: ICO_ABI,
-      //   functionName: 'contributions',
-      //   args: [address],
-      // });
-      // return formatEther(contribution);
-      
-      return '0';
+      const contribution = await publicClient.readContract({
+        address: contractAddress as `0x${string}`,
+        abi: ICO_ABI,
+        functionName: 'contributions',
+        args: [address],
+      } as any);
+      return formatEther(contribution as bigint);
     } catch (error) {
       console.error('Error fetching contribution:', error);
       return '0';
+    }
+  };
+
+  const getSaleInfo = async () => {
+    if (!publicClient || !contractAddress) {
+      return null;
+    }
+
+    try {
+      const [fundsRaised, hardCap, softCap, contributorCount] = await Promise.all([
+        publicClient.readContract({
+          address: contractAddress as `0x${string}`,
+          abi: ICO_ABI,
+          functionName: 'fundsRaised',
+        } as any),
+        publicClient.readContract({
+          address: contractAddress as `0x${string}`,
+          abi: ICO_ABI,
+          functionName: 'hardCap',
+        } as any),
+        publicClient.readContract({
+          address: contractAddress as `0x${string}`,
+          abi: ICO_ABI,
+          functionName: 'softCap',
+        } as any),
+        publicClient.readContract({
+          address: contractAddress as `0x${string}`,
+          abi: ICO_ABI,
+          functionName: 'getContributorCount',
+        } as any),
+      ]);
+
+      const raisedEth = parseFloat(formatEther(fundsRaised as bigint));
+      const hardCapEth = parseFloat(formatEther(hardCap as bigint));
+      const softCapEth = parseFloat(formatEther(softCap as bigint));
+      const progress = hardCapEth > 0 ? (raisedEth / hardCapEth) * 100 : 0;
+
+      return {
+        fundsRaised: raisedEth,
+        hardCap: hardCapEth,
+        softCap: softCapEth,
+        contributorCount: Number(contributorCount),
+        progressPercentage: Math.min(Math.round(progress), 100),
+      };
+    } catch (error) {
+      console.error('Error fetching sale info:', error);
+      return null;
     }
   };
 
@@ -167,6 +237,7 @@ export const useICOContract = (contractAddress: string) => {
     invest,
     claimRefund,
     getUserContribution,
+    getSaleInfo,
     isConnected,
   };
 };

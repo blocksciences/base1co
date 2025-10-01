@@ -16,6 +16,7 @@ import { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { toast } from 'sonner';
 import { useICOContract } from '@/hooks/useICOContract';
+import { useProjectBlockchainData } from '@/hooks/useProjectBlockchainData';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 
@@ -41,6 +42,7 @@ export const ProjectDetail = () => {
   const [isClaiming, setIsClaiming] = useState(false);
   
   const { invest, claimRefund } = useICOContract(project?.contractAddress || '');
+  const { saleInfo, isLoading: blockchainLoading } = useProjectBlockchainData(project?.contractAddress || null);
   
   const handleInvest = async () => {
     // Validate input
@@ -150,7 +152,11 @@ export const ProjectDetail = () => {
     );
   }
   
-  const progress = (project.raised / project.goal) * 100;
+  // Use blockchain data if available, otherwise fall back to database values
+  const raised = saleInfo?.fundsRaised ?? project.raised;
+  const goal = saleInfo?.hardCap ?? project.goal;
+  const progress = saleInfo?.progressPercentage ?? ((raised / goal) * 100);
+  const participants = saleInfo?.contributorCount ?? project.participants;
   
   return (
     <div className="min-h-screen">
@@ -233,19 +239,25 @@ export const ProjectDetail = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Progress</span>
-                    <span className="font-semibold">{progress.toFixed(1)}%</span>
+                    <span className="font-semibold">
+                      {blockchainLoading ? <Loader2 className="h-3 w-3 animate-spin inline" /> : `${progress.toFixed(1)}%`}
+                    </span>
                   </div>
                   <Progress value={progress} className="h-3" />
                   <div className="flex items-center justify-between text-sm">
-                    <span className="font-semibold">{project.raised.toLocaleString()} ETH</span>
-                    <span className="text-muted-foreground">of {project.goal.toLocaleString()} ETH</span>
+                    <span className="font-semibold">
+                      {blockchainLoading ? <Loader2 className="h-3 w-3 animate-spin inline" /> : `${raised.toFixed(4)} ETH`}
+                    </span>
+                    <span className="text-muted-foreground">of {goal.toFixed(2)} ETH</span>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4 py-4 border-y border-border/50">
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Participants</p>
-                    <p className="text-xl font-bold">{project.participants.toLocaleString()}</p>
+                    <p className="text-xl font-bold">
+                      {blockchainLoading ? <Loader2 className="h-4 w-4 animate-spin inline" /> : participants.toLocaleString()}
+                    </p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Ends In</p>
