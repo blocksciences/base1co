@@ -54,12 +54,13 @@ async function main() {
 
   // Save to file
   const fs = require('fs');
+  const network = await ethers.provider.getNetwork();
   fs.writeFileSync(
     'launchpad-deployment.json',
     JSON.stringify({
       launchpadAddress,
-      network: (await ethers.provider.getNetwork()).name,
-      chainId: (await ethers.provider.getNetwork()).chainId,
+      network: network.name,
+      chainId: network.chainId.toString(),
       deployer: deployer.address,
       timestamp: new Date().toISOString(),
     }, null, 2)

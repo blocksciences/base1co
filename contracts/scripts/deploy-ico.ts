@@ -11,7 +11,7 @@ async function main() {
   const TOKEN_NAME = process.env.TOKEN_NAME || "ICO Token";
   const TOKEN_SYMBOL = process.env.TOKEN_SYMBOL || "ICO";
   const INITIAL_SUPPLY = process.env.INITIAL_SUPPLY || "1000000000"; // 1 billion
-  const TOKEN_DECIMALS = process.env.TOKEN_DECIMALS || "18";
+  const TOKEN_DECIMALS = parseInt(process.env.TOKEN_DECIMALS || "18");
   const TOKEN_PRICE = ethers.parseEther(process.env.TOKEN_PRICE || "0.0001"); // Price per token in ETH
   const SOFT_CAP = ethers.parseEther(process.env.SOFT_CAP || "1000");
   const HARD_CAP = ethers.parseEther(process.env.HARD_CAP || "5000");
@@ -146,9 +146,10 @@ async function main() {
 
   // Save deployment info to file
   const fs = require('fs');
+  const network = await ethers.provider.getNetwork();
   const deploymentInfo = {
-    network: (await ethers.provider.getNetwork()).name,
-    chainId: (await ethers.provider.getNetwork()).chainId,
+    network: network.name,
+    chainId: network.chainId.toString(),
     deployer: deployer.address,
     timestamp: new Date().toISOString(),
     saleId: saleId,
