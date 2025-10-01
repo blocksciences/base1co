@@ -1,5 +1,5 @@
 import { useAccount, useWalletClient, usePublicClient } from 'wagmi';
-import { parseEther, formatEther } from 'viem';
+import { parseEther, formatEther, encodeFunctionData } from 'viem';
 import { toast } from 'sonner';
 
 // ICO Contract ABI - minimal interface for investment and claiming
@@ -97,8 +97,16 @@ export const useICOContract = (contractAddress: string) => {
     try {
       toast.loading('Preparing claim transaction...', { id: 'claim' });
 
+      // Encode the claimTokens() function call
+      const data = encodeFunctionData({
+        abi: ICO_ABI,
+        functionName: 'claimTokens',
+        args: [], // claimTokens takes no arguments
+      });
+
       const hash = await walletClient.sendTransaction({
         to: contractAddress as `0x${string}`,
+        data, // Include the encoded function call
       } as any);
 
       toast.loading('Claim submitted. Waiting for confirmation...', { id: 'claim' });
