@@ -14,6 +14,12 @@ const config: HardhatUserConfig = {
       },
     },
   },
+  paths: {
+    sources: "./",
+    tests: "./test",
+    cache: "./cache",
+    artifacts: "./artifacts",
+  },
   networks: {
     base: {
       url: process.env.BASE_RPC_URL || "https://mainnet.base.org",
