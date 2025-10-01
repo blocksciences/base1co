@@ -73,13 +73,35 @@ serve(async (req) => {
       throw new Error(`Wrong network. Expected Base Sepolia (${expectedChainId}), got ${network.chainId}`);
     }
 
-    // Check balance
-    const balance = await provider.getBalance(wallet.address);
-    console.log('Balance:', ethers.formatEther(balance), 'ETH');
-
-    const minRequired = ethers.parseEther('0.05');
-    if (balance < minRequired) {
-      throw new Error(`Insufficient ETH balance. Have: ${ethers.formatEther(balance)} ETH, Need at least 0.05 ETH for deployment`);
+    // Check balance with retry to handle RPC caching issues
+    let balance = BigInt(0);
+    const maxBalanceRetries = 3;
+    for (let attempt = 1; attempt <= maxBalanceRetries; attempt++) {
+      try {
+        // Force latest block to avoid stale RPC cache
+        const latestBlock = await provider.getBlockNumber();
+        console.log(`Checking balance at block ${latestBlock} (attempt ${attempt}/${maxBalanceRetries})...`);
+        balance = await provider.getBalance(wallet.address, 'latest');
+        console.log('Balance:', ethers.formatEther(balance), 'ETH');
+        
+        const minRequired = ethers.parseEther('0.05');
+        if (balance >= minRequired) {
+          break; // Sufficient balance found
+        }
+        
+        if (attempt < maxBalanceRetries) {
+          console.log('Balance below minimum, retrying in 3 seconds in case of RPC cache lag...');
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        } else {
+          throw new Error(`Insufficient ETH balance. Have: ${ethers.formatEther(balance)} ETH, Need at least 0.05 ETH for deployment. If you recently funded this wallet, please wait a few minutes for the blockchain to sync.`);
+        }
+      } catch (error: any) {
+        if (attempt === maxBalanceRetries) {
+          throw error;
+        }
+        console.log(`Balance check failed, retrying... (${error.message})`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
     }
 
     // Validate tokenomics
