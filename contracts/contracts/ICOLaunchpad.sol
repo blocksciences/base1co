@@ -2,15 +2,10 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./ICOSale.sol";
-import "./ICOToken.sol";
-import "./KYCRegistry.sol";
-import "./VestingVault.sol";
-import "./LiquidityLocker.sol";
 
 /**
  * @title ICOLaunchpad
- * @dev Factory contract for deploying and managing ICO sales
+ * @dev Registry contract for tracking deployed ICO sales
  * @notice Central registry for all deployed token sales
  */
 contract ICOLaunchpad is Ownable {
@@ -52,102 +47,49 @@ contract ICOLaunchpad is Ownable {
     constructor() Ownable(msg.sender) {}
     
     /**
-     * @notice Deploy a complete ICO sale with all components
-     * @param tokenName Token name
-     * @param tokenSymbol Token symbol
-     * @param tokenSupply Total token supply
-     * @param tokenDecimals Token decimals
-     * @param tokenPrice Price in wei per token
-     * @param softCap Soft cap in wei
-     * @param hardCap Hard cap in wei
-     * @param minContribution Minimum contribution in wei
-     * @param maxContribution Maximum contribution in wei
-     * @param maxPerWallet Maximum per wallet in wei
-     * @param startTime Sale start timestamp
-     * @param endTime Sale end timestamp
-     * @return saleId ID of the deployed sale
+     * @notice Register a deployed ICO sale
+     * @param saleContract Address of the ICO sale contract
+     * @param tokenContract Address of the token contract
+     * @param kycRegistry Address of the KYC registry
+     * @param vestingVault Address of the vesting vault
+     * @param liquidityLocker Address of the liquidity locker
+     * @param creator Address of the sale creator
+     * @return saleId ID of the registered sale
      */
-    function deploySale(
-        string memory tokenName,
-        string memory tokenSymbol,
-        uint256 tokenSupply,
-        uint8 tokenDecimals,
-        uint256 tokenPrice,
-        uint256 softCap,
-        uint256 hardCap,
-        uint256 minContribution,
-        uint256 maxContribution,
-        uint256 maxPerWallet,
-        uint256 startTime,
-        uint256 endTime
-    ) external returns (uint256 saleId) {
-        require(startTime > block.timestamp, "Start must be in future");
-        require(endTime > startTime, "End must be after start");
-        require(hardCap > softCap, "Hard cap must be > soft cap");
+    function registerSale(
+        address saleContract,
+        address tokenContract,
+        address kycRegistry,
+        address vestingVault,
+        address liquidityLocker,
+        address creator
+    ) external onlyOwner returns (uint256 saleId) {
+        require(saleContract != address(0), "Invalid sale address");
+        require(tokenContract != address(0), "Invalid token address");
+        require(kycRegistry != address(0), "Invalid KYC address");
         
         saleId = nextSaleId++;
         
-        // Deploy KYC Registry
-        KYCRegistry kycRegistry = new KYCRegistry();
-        kycRegistry.transferOwnership(msg.sender);
-        
-        // Deploy Token
-        ICOToken token = new ICOToken(
-            tokenName,
-            tokenSymbol,
-            tokenSupply,
-            tokenDecimals
-        );
-        
-        // Deploy ICO Sale
-        ICOSale sale = new ICOSale(
-            address(token),
-            address(kycRegistry),
-            tokenPrice,
-            softCap,
-            hardCap,
-            minContribution,
-            maxContribution,
-            maxPerWallet,
-            startTime,
-            endTime
-        );
-        
-        // Deploy Vesting Vault
-        VestingVault vestingVault = new VestingVault(address(token));
-        vestingVault.transferOwnership(msg.sender);
-        
-        // Deploy Liquidity Locker
-        LiquidityLocker liquidityLocker = new LiquidityLocker();
-        liquidityLocker.transferOwnership(msg.sender);
-        
-        // Transfer token ownership to creator for initial setup
-        token.transferOwnership(msg.sender);
-        
-        // Transfer sale ownership to creator
-        sale.transferOwnership(msg.sender);
-        
-        // Store sale information
         sales[saleId] = DeployedSale({
-            saleContract: address(sale),
-            tokenContract: address(token),
-            kycRegistry: address(kycRegistry),
-            vestingVault: address(vestingVault),
-            liquidityLocker: address(liquidityLocker),
-            creator: msg.sender,
+            saleContract: saleContract,
+            tokenContract: tokenContract,
+            kycRegistry: kycRegistry,
+            vestingVault: vestingVault,
+            liquidityLocker: liquidityLocker,
+            creator: creator,
             deployedAt: block.timestamp,
             active: true
         });
         
         allSaleIds.push(saleId);
-        salesByCreator[msg.sender].push(saleId);
+        salesByCreator[creator].push(saleId);
         
         emit SaleDeployed(
             saleId,
-            msg.sender,
-            address(sale),
-            address(token),
-            address(kycRegistry),
+            creator,
+            saleContract,
+            tokenContract,
+            kycRegistry,
             block.timestamp
         );
         

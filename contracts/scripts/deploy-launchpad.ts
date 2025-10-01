@@ -45,9 +45,12 @@ async function main() {
   console.log("\n🔍 To verify on BaseScan:");
   console.log(`npx hardhat verify --network baseSepolia ${launchpadAddress}`);
 
-  console.log("\n⚠️  IMPORTANT: Save this launchpad address to your Supabase secrets:");
-  console.log(`Secret Name: ICO_LAUNCHPAD_ADDRESS`);
-  console.log(`Secret Value: ${launchpadAddress}`);
+  console.log("\n⚠️  IMPORTANT: Save this launchpad address to your backend:");
+  console.log(`Launchpad Address: ${launchpadAddress}`);
+  console.log("\n📝 Next steps:");
+  console.log("1. Update your backend with this launchpad address");
+  console.log("2. Use the deploy-ico.ts script to deploy individual ICO sales");
+  console.log("3. The deployed ICO contracts will be automatically registered with this launchpad");
 
   // Save to file
   const fs = require('fs');

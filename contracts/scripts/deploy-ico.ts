@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  console.log("Deploying ICO contracts to Base...");
+  console.log("Deploying complete ICO suite to Base...");
 
   const [deployer] = await ethers.getSigners();
   console.log("Deploying with account:", deployer.address);
@@ -17,13 +17,23 @@ async function main() {
   const HARD_CAP = ethers.parseEther(process.env.HARD_CAP || "5000");
   const MIN_CONTRIBUTION = ethers.parseEther(process.env.MIN_CONTRIBUTION || "0.1");
   const MAX_CONTRIBUTION = ethers.parseEther(process.env.MAX_CONTRIBUTION || "100");
+  const MAX_PER_WALLET = ethers.parseEther(process.env.MAX_PER_WALLET || "100");
+  const LAUNCHPAD_ADDRESS = process.env.LAUNCHPAD_ADDRESS || "";
   
-  // Sale times (default: start now, end in 30 days)
-  const START_TIME = Math.floor(Date.now() / 1000);
+  // Sale times (default: start in 1 hour, end in 30 days)
+  const START_TIME = Math.floor(Date.now() / 1000) + 3600; // Start in 1 hour
   const END_TIME = START_TIME + (30 * 24 * 60 * 60); // 30 days
 
-  // Deploy Token
-  console.log("\n1. Deploying ICOToken...");
+  // 1. Deploy KYC Registry
+  console.log("\n1. Deploying KYCRegistry...");
+  const KYCRegistry = await ethers.getContractFactory("KYCRegistry");
+  const kycRegistry = await KYCRegistry.deploy();
+  await kycRegistry.waitForDeployment();
+  const kycAddress = await kycRegistry.getAddress();
+  console.log("✅ KYCRegistry deployed to:", kycAddress);
+
+  // 2. Deploy Token
+  console.log("\n2. Deploying ICOToken...");
   const ICOToken = await ethers.getContractFactory("ICOToken");
   const token = await ICOToken.deploy(
     TOKEN_NAME,
@@ -35,16 +45,18 @@ async function main() {
   const tokenAddress = await token.getAddress();
   console.log("✅ ICOToken deployed to:", tokenAddress);
 
-  // Deploy Sale Contract
-  console.log("\n2. Deploying ICOSale...");
+  // 3. Deploy Sale Contract
+  console.log("\n3. Deploying ICOSale...");
   const ICOSale = await ethers.getContractFactory("ICOSale");
   const sale = await ICOSale.deploy(
     tokenAddress,
+    kycAddress,
     TOKEN_PRICE,
     SOFT_CAP,
     HARD_CAP,
     MIN_CONTRIBUTION,
     MAX_CONTRIBUTION,
+    MAX_PER_WALLET,
     START_TIME,
     END_TIME
   );
@@ -52,8 +64,24 @@ async function main() {
   const saleAddress = await sale.getAddress();
   console.log("✅ ICOSale deployed to:", saleAddress);
 
-  // Transfer tokens to sale contract
-  console.log("\n3. Transferring tokens to sale contract...");
+  // 4. Deploy Vesting Vault
+  console.log("\n4. Deploying VestingVault...");
+  const VestingVault = await ethers.getContractFactory("VestingVault");
+  const vestingVault = await VestingVault.deploy(tokenAddress);
+  await vestingVault.waitForDeployment();
+  const vestingAddress = await vestingVault.getAddress();
+  console.log("✅ VestingVault deployed to:", vestingAddress);
+
+  // 5. Deploy Liquidity Locker
+  console.log("\n5. Deploying LiquidityLocker...");
+  const LiquidityLocker = await ethers.getContractFactory("LiquidityLocker");
+  const liquidityLocker = await LiquidityLocker.deploy();
+  await liquidityLocker.waitForDeployment();
+  const liquidityAddress = await liquidityLocker.getAddress();
+  console.log("✅ LiquidityLocker deployed to:", liquidityAddress);
+
+  // 6. Transfer tokens to sale contract
+  console.log("\n6. Transferring tokens to sale contract...");
   const saleAllocation = ethers.parseUnits(
     (BigInt(INITIAL_SUPPLY) * BigInt(40) / BigInt(100)).toString(),
     TOKEN_DECIMALS
@@ -63,11 +91,48 @@ async function main() {
   await transferTx.wait();
   console.log("✅ Transferred", ethers.formatUnits(saleAllocation, TOKEN_DECIMALS), "tokens to sale contract");
 
+  // 7. Register with launchpad (if address provided)
+  let saleId = null;
+  if (LAUNCHPAD_ADDRESS && LAUNCHPAD_ADDRESS !== "") {
+    console.log("\n7. Registering sale with launchpad...");
+    const launchpad = await ethers.getContractAt("ICOLaunchpad", LAUNCHPAD_ADDRESS);
+    const registerTx = await launchpad.registerSale(
+      saleAddress,
+      tokenAddress,
+      kycAddress,
+      vestingAddress,
+      liquidityAddress,
+      deployer.address
+    );
+    const receipt = await registerTx.wait();
+    
+    // Extract saleId from event
+    const event = receipt?.logs.find((log: any) => {
+      try {
+        return launchpad.interface.parseLog(log)?.name === 'SaleDeployed';
+      } catch {
+        return false;
+      }
+    });
+    
+    if (event) {
+      const parsed = launchpad.interface.parseLog(event);
+      saleId = parsed?.args?.saleId?.toString();
+      console.log("✅ Sale registered with ID:", saleId);
+    }
+  } else {
+    console.log("\n7. Skipping launchpad registration (no LAUNCHPAD_ADDRESS provided)");
+  }
+
   // Verify deployment
   console.log("\n📋 Deployment Summary:");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.log("KYC Registry:", kycAddress);
   console.log("Token Address:", tokenAddress);
   console.log("Sale Address:", saleAddress);
+  console.log("Vesting Vault:", vestingAddress);
+  console.log("Liquidity Locker:", liquidityAddress);
+  if (saleId) console.log("Launchpad Sale ID:", saleId);
   console.log("Token Name:", TOKEN_NAME);
   console.log("Token Symbol:", TOKEN_SYMBOL);
   console.log("Total Supply:", INITIAL_SUPPLY);
@@ -79,11 +144,6 @@ async function main() {
   console.log("End Time:", new Date(END_TIME * 1000).toISOString());
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-  // Verification instructions
-  console.log("\n🔍 To verify contracts on BaseScan:");
-  console.log(`npx hardhat verify --network base ${tokenAddress} "${TOKEN_NAME}" "${TOKEN_SYMBOL}" ${INITIAL_SUPPLY} ${TOKEN_DECIMALS}`);
-  console.log(`npx hardhat verify --network base ${saleAddress} ${tokenAddress} ${TOKEN_PRICE} ${SOFT_CAP} ${HARD_CAP} ${MIN_CONTRIBUTION} ${MAX_CONTRIBUTION} ${START_TIME} ${END_TIME}`);
-
   // Save deployment info to file
   const fs = require('fs');
   const deploymentInfo = {
@@ -91,7 +151,9 @@ async function main() {
     chainId: (await ethers.provider.getNetwork()).chainId,
     deployer: deployer.address,
     timestamp: new Date().toISOString(),
+    saleId: saleId,
     contracts: {
+      kycRegistry: kycAddress,
       token: {
         address: tokenAddress,
         name: TOKEN_NAME,
@@ -107,6 +169,8 @@ async function main() {
         startTime: START_TIME,
         endTime: END_TIME,
       },
+      vestingVault: vestingAddress,
+      liquidityLocker: liquidityAddress,
     },
   };
 
@@ -115,6 +179,12 @@ async function main() {
     JSON.stringify(deploymentInfo, null, 2)
   );
   console.log("\n✅ Deployment info saved to deployment-info.json");
+  
+  console.log("\n🔍 To verify contracts on BaseScan:");
+  console.log(`npx hardhat verify --network baseSepolia ${kycAddress}`);
+  console.log(`npx hardhat verify --network baseSepolia ${tokenAddress} "${TOKEN_NAME}" "${TOKEN_SYMBOL}" ${INITIAL_SUPPLY} ${TOKEN_DECIMALS}`);
+  console.log(`npx hardhat verify --network baseSepolia ${vestingAddress} ${tokenAddress}`);
+  console.log(`npx hardhat verify --network baseSepolia ${liquidityAddress}`);
 }
 
 main()
