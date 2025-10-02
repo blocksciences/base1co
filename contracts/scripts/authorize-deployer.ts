@@ -4,12 +4,8 @@ async function main() {
   // The address to authorize
   const DEPLOYER_ADDRESS = "0x42b8c0eCC3E000af532f36f2fD0Cf42a26EfDf9C";
   
-  // Get the ICOLaunchpad address from environment or hardcode it
-  const LAUNCHPAD_ADDRESS = process.env.ICO_LAUNCHPAD_ADDRESS || "0x264daDF84f470c650dCCcb2f5670AFD48a6E7C33";
-  
-  if (!LAUNCHPAD_ADDRESS || LAUNCHPAD_ADDRESS === "YOUR_LAUNCHPAD_ADDRESS_HERE") {
-    throw new Error("Please set ICO_LAUNCHPAD_ADDRESS in your .env file");
-  }
+  // Hardcoded launchpad address
+  const LAUNCHPAD_ADDRESS = "0x264daDF84f470c650dCCcb2f5670AFD48a6E7C33";
 
   console.log("Authorizing deployer on ICOLaunchpad...");
   console.log("Launchpad address:", LAUNCHPAD_ADDRESS);
