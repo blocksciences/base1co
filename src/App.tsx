@@ -29,6 +29,7 @@ import VestingDashboard from "./pages/admin/VestingDashboard";
 import LiquidityLocks from "./pages/admin/LiquidityLocks";
 import EntityKYC from "./pages/admin/EntityKYC";
 import DistributionJobs from "./pages/admin/DistributionJobs";
+import QuickKYCApproval from "./pages/admin/QuickKYCApproval";
 import ProjectTransparency from "./pages/ProjectTransparency";
 import NotFound from "./pages/NotFound";
 import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
@@ -73,6 +74,7 @@ const App = () => (
               <Route path="/admin/liquidity-locks" element={<AdminProtectedRoute><LiquidityLocks /></AdminProtectedRoute>} />
               <Route path="/admin/entity-kyc" element={<AdminProtectedRoute><EntityKYC /></AdminProtectedRoute>} />
               <Route path="/admin/distributions" element={<AdminProtectedRoute><DistributionJobs /></AdminProtectedRoute>} />
+              <Route path="/admin/quick-kyc" element={<AdminProtectedRoute><QuickKYCApproval /></AdminProtectedRoute>} />
               <Route path="/admin/manage-admins" element={<AdminProtectedRoute><AdminManagement /></AdminProtectedRoute>} />
               <Route path="/admin/settings" element={<AdminProtectedRoute><AdminSettings /></AdminProtectedRoute>} />
               
