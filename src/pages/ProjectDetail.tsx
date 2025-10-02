@@ -6,11 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
 import { 
   Clock, Users, Target, TrendingUp, Shield, 
   ExternalLink, Twitter, Globe, FileText,
-  Loader2, CheckCircle2, AlertCircle, Lock
+  Loader2, CheckCircle2, AlertCircle, Lock, Copy
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
@@ -19,6 +18,8 @@ import { useICOContract } from '@/hooks/useICOContract';
 import { useProjectBlockchainData } from '@/hooks/useProjectBlockchainData';
 import { supabase } from '@/integrations/supabase/client';
 import { KYCModal } from '@/components/KYCModal';
+import { InvestmentModal } from '@/components/InvestmentModal';
+import { CountdownTimer } from '@/components/CountdownTimer';
 
 // Schema will be validated dynamically with actual contract values
 
@@ -26,13 +27,13 @@ export const ProjectDetail = () => {
   const { id } = useParams();
   const { data: project, isLoading } = useProject(id!);
   const { isConnected, address } = useAccount();
-  const [investAmount, setInvestAmount] = useState('');
   const [isInvesting, setIsInvesting] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
   const [isKYCApproved, setIsKYCApproved] = useState(false);
   const [checkingKYC, setCheckingKYC] = useState(false);
   const [saleStatus, setSaleStatus] = useState({ hasStarted: false, hasEnded: false, canInvest: false });
   const [showKYCModal, setShowKYCModal] = useState(false);
+  const [showInvestModal, setShowInvestModal] = useState(false);
   
   const { invest, claimRefund, checkKYCStatus, checkSaleStatus } = useICOContract(project?.contractAddress || '');
   const { saleInfo, isLoading: blockchainLoading } = useProjectBlockchainData(project?.contractAddress || null);
@@ -63,70 +64,41 @@ export const ProjectDetail = () => {
     checkStatuses();
   }, [isConnected, address, project?.contractAddress]);
   
-  const handleInvest = async () => {
-    const amount = parseFloat(investAmount);
-    
-    if (!investAmount || amount <= 0) {
-      toast.error('Please enter a valid amount');
-      return;
-    }
-
-    // Validate against min/max from blockchain
-    if (saleInfo) {
-      if (amount < saleInfo.minContribution) {
-        toast.error(`Minimum contribution is ${saleInfo.minContribution.toFixed(4)} ETH`);
-        return;
-      }
-      if (amount > saleInfo.maxContribution) {
-        toast.error(`Maximum contribution is ${saleInfo.maxContribution.toFixed(2)} ETH`);
-        return;
-      }
-    }
-
-    if (!isConnected || !address) {
-      toast.error('Please connect your wallet first');
-      return;
-    }
-
-    if (!project) {
-      toast.error('Project not found');
-      return;
-    }
-
+  const handleInvest = async (amount: string): Promise<boolean> => {
     setIsInvesting(true);
     try {
       // STEP 1: Call the blockchain contract's buyTokens()
-      const success = await invest(investAmount);
+      const success = await invest(amount);
       
       if (!success) {
-        // Transaction failed or was rejected
-        return;
+        return false;
       }
 
       // STEP 2: Save investment to database AFTER successful blockchain transaction
-      const tokenPrice = parseFloat(project.price.split(' ')[0]);
-      const tokensReceived = parseFloat(investAmount) / tokenPrice;
+      const tokenPrice = parseFloat(project!.price.split(' ')[0]);
+      const tokensReceived = parseFloat(amount) / tokenPrice;
       
       const { error } = await supabase
         .from('user_investments')
         .insert({
           wallet_address: address,
-          project_id: project.id,
-          project_name: project.name,
-          project_symbol: project.symbol,
-          amount_eth: parseFloat(investAmount),
-          amount_usd: parseFloat(investAmount) * 2500,
+          project_id: project!.id,
+          project_name: project!.name,
+          project_symbol: project!.symbol,
+          amount_eth: parseFloat(amount),
+          amount_usd: parseFloat(amount) * 2500,
           tokens_received: tokensReceived,
           status: 'active',
         });
 
       if (error) throw error;
 
-      toast.success(`Successfully invested ${investAmount} ETH in ${project.name}!`);
-      setInvestAmount('');
+      toast.success(`Successfully invested ${amount} ETH in ${project!.name}!`);
+      return true;
     } catch (error: any) {
       console.error('Investment error:', error);
       toast.error(error.message || 'Failed to process investment');
+      return false;
     } finally {
       setIsInvesting(false);
     }
@@ -376,62 +348,18 @@ export const ProjectDetail = () => {
                     </>
                   )}
                   
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Investment Amount (ETH)
-                      {saleInfo && (
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          Min: {saleInfo.minContribution.toFixed(4)} | Max: {saleInfo.maxContribution.toFixed(2)}
-                        </span>
-                      )}
-                    </label>
-                    <Input
-                      type="number"
-                      placeholder={`${saleInfo?.minContribution.toFixed(4) || '0.01'} - ${saleInfo?.maxContribution.toFixed(2) || '10'} ETH`}
-                      value={investAmount}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setInvestAmount(value);
-                        
-                        // Real-time validation feedback
-                        if (value && saleInfo) {
-                          const amount = parseFloat(value);
-                          if (amount < saleInfo.minContribution) {
-                            toast.error(`Minimum: ${saleInfo.minContribution.toFixed(4)} ETH`, { duration: 2000 });
-                          } else if (amount > saleInfo.maxContribution) {
-                            toast.error(`Maximum: ${saleInfo.maxContribution.toFixed(2)} ETH`, { duration: 2000 });
-                          }
-                        }
-                      }}
-                      className="h-12 text-lg"
-                      step="0.0001"
-                      min={saleInfo?.minContribution || 0.01}
-                      max={saleInfo?.maxContribution || 10}
-                      disabled={!isConnected || !isKYCApproved || !saleStatus.canInvest}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {investAmount && parseFloat(investAmount) > 0 ? (
-                        <>
-                          You will receive: ~{(parseFloat(investAmount) / parseFloat(project.price.split(' ')[0])).toFixed(2)} {project.symbol}
-                        </>
-                      ) : (
-                        'Enter amount to see token estimate'
-                      )}
-                    </p>
-                  </div>
-                  
                   {!isConnected ? (
-                    <Button className="w-full h-12 text-lg" variant="outline" disabled>
+                    <Button className="w-full h-14 text-lg" variant="outline" disabled>
                       Connect Wallet to Invest
                     </Button>
                   ) : checkingKYC ? (
-                    <Button className="w-full h-12 text-lg" disabled>
+                    <Button className="w-full h-14 text-lg" disabled>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Checking Status...
                     </Button>
                   ) : !isKYCApproved ? (
                     <Button 
-                      className="w-full h-12 text-lg" 
+                      className="w-full h-14 text-lg" 
                       variant="outline"
                       onClick={() => setShowKYCModal(true)}
                     >
@@ -439,23 +367,23 @@ export const ProjectDetail = () => {
                       Complete KYC to Invest
                     </Button>
                   ) : !saleStatus.canInvest ? (
-                    <Button className="w-full h-12 text-lg" variant="outline" disabled>
+                    <Button className="w-full h-14 text-lg" variant="outline" disabled>
                       <Lock className="h-4 w-4 mr-2" />
                       {!saleStatus.hasStarted ? 'Sale Not Started' : 'Sale Ended'}
                     </Button>
                   ) : (
                     <Button 
-                      className="w-full h-12 text-lg bg-gradient-primary hover:opacity-90"
-                      onClick={handleInvest}
-                      disabled={isInvesting || !investAmount}
+                      className="w-full h-14 text-lg bg-gradient-primary hover:opacity-90"
+                      onClick={() => setShowInvestModal(true)}
+                      disabled={isInvesting}
                     >
                       {isInvesting ? (
                         <>
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                           Processing...
                         </>
                       ) : (
-                        'Invest Now'
+                        'Buy Tokens Now'
                       )}
                     </Button>
                   )}
@@ -666,6 +594,26 @@ export const ProjectDetail = () => {
           </TabsContent>
         </Tabs>
       </section>
+
+      {/* Modals */}
+      <KYCModal 
+        open={showKYCModal} 
+        onOpenChange={setShowKYCModal}
+        walletAddress={address || ''}
+      />
+      
+      {project && isConnected && (
+        <InvestmentModal
+          open={showInvestModal}
+          onOpenChange={setShowInvestModal}
+          projectName={project.name}
+          projectSymbol={project.symbol}
+          tokenPrice={project.price}
+          minContribution={saleInfo?.minContribution || 0.01}
+          maxContribution={saleInfo?.maxContribution || 10}
+          onInvest={handleInvest}
+        />
+      )}
     </div>
   );
 };

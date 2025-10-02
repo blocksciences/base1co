@@ -8,7 +8,9 @@ import { Rocket, Shield, Zap, TrendingUp, ArrowRight, Loader2 } from 'lucide-rea
 
 const Index = () => {
   const { data: projects, isLoading } = useProjects();
-  const featuredProjects = projects?.filter(p => p.status === 'live').slice(0, 3);
+  const liveProjects = projects?.filter(p => p.status === 'live').slice(0, 3);
+  const upcomingProjects = projects?.filter(p => p.status === 'upcoming').slice(0, 3);
+  const completedProjects = projects?.filter(p => p.status === 'success').slice(0, 3);
   
   return (
     <div className="min-h-screen">
@@ -83,11 +85,15 @@ const Index = () => {
             <div className="flex items-center justify-center py-20">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
-          ) : (
+          ) : liveProjects && liveProjects.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featuredProjects?.map((project) => (
+              {liveProjects.map((project) => (
                 <ProjectCard key={project.id} project={project} />
               ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No live projects at the moment</p>
             </div>
           )}
           
@@ -102,6 +108,50 @@ const Index = () => {
         </div>
       </section>
       
+      {/* Upcoming Projects */}
+      {!isLoading && upcomingProjects && upcomingProjects.length > 0 && (
+        <section className="container px-4 py-20 border-t border-border/50">
+          <div className="space-y-8">
+            <div className="text-center space-y-4">
+              <h2 className="text-3xl md:text-4xl font-bold">
+                Upcoming Launches
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Get ready for the next wave of innovative projects
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {upcomingProjects.map((project) => (
+                <ProjectCard key={project.id} project={project} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Completed Projects */}
+      {!isLoading && completedProjects && completedProjects.length > 0 && (
+        <section className="container px-4 py-20 border-t border-border/50">
+          <div className="space-y-8">
+            <div className="text-center space-y-4">
+              <h2 className="text-3xl md:text-4xl font-bold">
+                Successfully Funded
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Projects that reached their goals and are now live
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {completedProjects.map((project) => (
+                <ProjectCard key={project.id} project={project} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Features */}
       <section className="container px-4 py-20 border-t border-border/50">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
