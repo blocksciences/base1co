@@ -814,6 +814,89 @@ export type Database = {
         }
         Relationships: []
       }
+      staking_pools: {
+        Row: {
+          apy_rate: number
+          created_at: string
+          id: string
+          is_active: boolean
+          lock_period_days: number
+          min_stake_amount: number
+          name: string
+          token_address: string
+          token_symbol: string
+          total_staked: number
+          updated_at: string
+        }
+        Insert: {
+          apy_rate: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          lock_period_days?: number
+          min_stake_amount?: number
+          name: string
+          token_address: string
+          token_symbol: string
+          total_staked?: number
+          updated_at?: string
+        }
+        Update: {
+          apy_rate?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          lock_period_days?: number
+          min_stake_amount?: number
+          name?: string
+          token_address?: string
+          token_symbol?: string
+          total_staked?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      staking_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          pool_id: string
+          status: string
+          transaction_type: string
+          tx_hash: string | null
+          wallet_address: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          pool_id: string
+          status?: string
+          transaction_type: string
+          tx_hash?: string | null
+          wallet_address: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          pool_id?: string
+          status?: string
+          transaction_type?: string
+          tx_hash?: string | null
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staking_transactions_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "staking_pools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transactions: {
         Row: {
           amount_crypto: string
@@ -941,6 +1024,56 @@ export type Database = {
         }
         Relationships: []
       }
+      user_stakes: {
+        Row: {
+          created_at: string
+          id: string
+          last_reward_calculation: string
+          pool_id: string
+          rewards_earned: number
+          staked_amount: number
+          staked_at: string
+          status: string
+          unstaked_at: string | null
+          updated_at: string
+          wallet_address: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_reward_calculation?: string
+          pool_id: string
+          rewards_earned?: number
+          staked_amount: number
+          staked_at?: string
+          status?: string
+          unstaked_at?: string | null
+          updated_at?: string
+          wallet_address: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_reward_calculation?: string
+          pool_id?: string
+          rewards_earned?: number
+          staked_amount?: number
+          staked_at?: string
+          status?: string
+          unstaked_at?: string | null
+          updated_at?: string
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_stakes_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "staking_pools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vesting_schedules: {
         Row: {
           beneficiary_address: string
@@ -1044,6 +1177,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_staking_rewards: {
+        Args: { stake_id: string }
+        Returns: number
+      }
       is_admin: {
         Args: { check_user_id: string }
         Returns: boolean
