@@ -9,7 +9,9 @@ async function main() {
     'KYCRegistry',
     'ICOSale',
     'VestingVault',
-    'LiquidityLocker'
+    'LiquidityLocker',
+    'LISTToken',
+    'PlatformStakingVault'
   ];
 
   const artifactsPath = path.join(__dirname, '../artifacts/contracts');
