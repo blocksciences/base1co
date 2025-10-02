@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
@@ -15,7 +16,7 @@ interface IKYCRegistry {
  * @dev ICO contract for token sales with configurable parameters and KYC integration
  */
 contract ICOSale is Ownable, ReentrancyGuard, Pausable {
-    IERC20 public token;
+    IERC20Metadata public token; // Changed to IERC20Metadata to access decimals()
     IKYCRegistry public kycRegistry;
     
     uint256 public tokenPrice; // Price in wei per token (considering decimals)
@@ -23,7 +24,6 @@ contract ICOSale is Ownable, ReentrancyGuard, Pausable {
     uint256 public hardCap;
     uint256 public minContribution;
     uint256 public maxContribution;
-    uint256 public maxPerWallet; // Maximum per wallet limit
     uint256 public startTime;
     uint256 public endTime;
     uint256 public fundsRaised;
@@ -34,10 +34,12 @@ contract ICOSale is Ownable, ReentrancyGuard, Pausable {
     
     bool public finalized;
     bool public softCapReached;
+    bool public emergencyMode; // NEW: Emergency mode flag
     
     event TokensPurchased(address indexed buyer, uint256 ethAmount, uint256 tokenAmount);
     event Refund(address indexed buyer, uint256 ethAmount);
     event SaleFinalized(uint256 totalRaised);
+    event EmergencyWithdraw(address indexed owner, uint256 amount);
     
     constructor(
         address _token,
@@ -47,7 +49,7 @@ contract ICOSale is Ownable, ReentrancyGuard, Pausable {
         uint256 _hardCap,
         uint256 _minContribution,
         uint256 _maxContribution,
-        uint256 _maxPerWallet,
+        uint256 _maxPerWallet, // REMOVED: No longer used, kept for compatibility
         uint256 _startTime,
         uint256 _endTime
     ) Ownable(msg.sender) {
@@ -56,16 +58,17 @@ contract ICOSale is Ownable, ReentrancyGuard, Pausable {
         require(_softCap < _hardCap, "Soft cap must be less than hard cap");
         require(_startTime < _endTime, "Start time must be before end time");
         require(_startTime >= block.timestamp, "Start time must be in the future");
-        require(_maxPerWallet > 0, "Max per wallet must be > 0");
+        require(_tokenPrice > 0, "Token price must be > 0");
+        require(_minContribution > 0, "Min contribution must be > 0");
+        require(_maxContribution >= _minContribution, "Max must be >= min");
         
-        token = IERC20(_token);
+        token = IERC20Metadata(_token);
         kycRegistry = IKYCRegistry(_kycRegistry);
         tokenPrice = _tokenPrice;
         softCap = _softCap;
         hardCap = _hardCap;
         minContribution = _minContribution;
         maxContribution = _maxContribution;
-        maxPerWallet = _maxPerWallet;
         startTime = _startTime;
         endTime = _endTime;
     }
@@ -74,6 +77,7 @@ contract ICOSale is Ownable, ReentrancyGuard, Pausable {
         require(block.timestamp >= startTime, "Sale not started");
         require(block.timestamp <= endTime, "Sale ended");
         require(!finalized, "Sale finalized");
+        require(!emergencyMode, "Emergency mode active");
         require(fundsRaised < hardCap, "Hard cap reached");
         _;
     }
@@ -82,13 +86,17 @@ contract ICOSale is Ownable, ReentrancyGuard, Pausable {
         require(kycRegistry.isEligible(msg.sender), "Not KYC approved");
         require(msg.value >= minContribution, "Below minimum contribution");
         require(contributions[msg.sender] + msg.value <= maxContribution, "Exceeds maximum contribution");
-        require(contributions[msg.sender] + msg.value <= maxPerWallet, "Exceeds wallet limit");
         
         uint256 availableForSale = hardCap - fundsRaised;
         uint256 contribution = msg.value > availableForSale ? availableForSale : msg.value;
         uint256 refund = msg.value - contribution;
         
-        uint256 tokenAmount = (contribution * (10 ** 18)) / tokenPrice;
+        // FIXED: Use actual token decimals instead of hardcoded 18
+        uint256 tokenDecimals = token.decimals();
+        uint256 tokenAmount = (contribution * (10 ** tokenDecimals)) / tokenPrice;
+        
+        // ADDED: Check if contract has enough tokens
+        require(token.balanceOf(address(this)) >= tokenAmount, "Insufficient tokens in sale");
         
         if (contributions[msg.sender] == 0) {
             contributors.push(msg.sender);
@@ -112,8 +120,8 @@ contract ICOSale is Ownable, ReentrancyGuard, Pausable {
     }
     
     function claimRefund() external nonReentrant {
-        require(block.timestamp > endTime, "Sale not ended");
-        require(!softCapReached, "Soft cap reached, no refunds");
+        require(block.timestamp > endTime || emergencyMode, "Sale not ended");
+        require(!softCapReached || emergencyMode, "Soft cap reached, no refunds");
         require(contributions[msg.sender] > 0, "No contribution found");
         
         uint256 refundAmount = contributions[msg.sender];
@@ -148,6 +156,26 @@ contract ICOSale is Ownable, ReentrancyGuard, Pausable {
         }
     }
     
+    // NEW: Emergency functions
+    function enableEmergencyMode() external onlyOwner {
+        emergencyMode = true;
+    }
+    
+    function emergencyWithdrawETH() external onlyOwner {
+        require(emergencyMode, "Not in emergency mode");
+        uint256 balance = address(this).balance;
+        payable(owner()).transfer(balance);
+        emit EmergencyWithdraw(owner(), balance);
+    }
+    
+    function emergencyWithdrawTokens() external onlyOwner {
+        require(emergencyMode, "Not in emergency mode");
+        uint256 tokenBalance = token.balanceOf(address(this));
+        if (tokenBalance > 0) {
+            token.transfer(owner(), tokenBalance);
+        }
+    }
+    
     function pause() external onlyOwner {
         _pause();
     }
@@ -158,6 +186,7 @@ contract ICOSale is Ownable, ReentrancyGuard, Pausable {
     
     function extendSale(uint256 newEndTime) external onlyOwner {
         require(newEndTime > endTime, "New end time must be after current end time");
+        require(!finalized, "Sale already finalized");
         endTime = newEndTime;
     }
     

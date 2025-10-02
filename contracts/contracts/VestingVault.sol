@@ -17,6 +17,7 @@ contract VestingVault is Ownable, ReentrancyGuard {
         uint256 cliffDuration;      // Cliff period in seconds
         uint256 vestingDuration;    // Total vesting duration in seconds
         uint256 releasedAmount;     // Amount already released
+        address funder;             // NEW: Who funded this vesting
         bool revocable;             // Can this schedule be revoked
         bool revoked;               // Has this schedule been revoked
     }
@@ -36,10 +37,12 @@ contract VestingVault is Ownable, ReentrancyGuard {
         uint256 startTime,
         uint256 cliffDuration,
         uint256 vestingDuration,
-        bool revocable
+        bool revocable,
+        address indexed funder
     );
     event TokensReleased(address indexed beneficiary, uint256 amount);
-    event VestingRevoked(address indexed beneficiary, uint256 refundAmount);
+    event VestingRevoked(address indexed beneficiary, address indexed funder, uint256 refundAmount);
+    event BeneficiaryUpdated(address indexed oldBeneficiary, address indexed newBeneficiary); // NEW
     
     constructor(address tokenAddress) Ownable(msg.sender) {
         require(tokenAddress != address(0), "Invalid token address");
@@ -68,6 +71,7 @@ contract VestingVault is Ownable, ReentrancyGuard {
         require(vestingDuration > 0, "Duration must be > 0");
         require(cliffDuration <= vestingDuration, "Cliff > duration");
         require(vestingSchedules[beneficiary].totalAmount == 0, "Schedule exists");
+        require(startTime >= block.timestamp, "Start time must be in future"); // NEW: Validation
         
         vestingSchedules[beneficiary] = VestingSchedule({
             totalAmount: totalAmount,
@@ -75,6 +79,7 @@ contract VestingVault is Ownable, ReentrancyGuard {
             cliffDuration: cliffDuration,
             vestingDuration: vestingDuration,
             releasedAmount: 0,
+            funder: msg.sender, // NEW: Track who funded this
             revocable: revocable,
             revoked: false
         });
@@ -96,7 +101,8 @@ contract VestingVault is Ownable, ReentrancyGuard {
             startTime,
             cliffDuration,
             vestingDuration,
-            revocable
+            revocable,
+            msg.sender
         );
     }
     
@@ -149,25 +155,53 @@ contract VestingVault is Ownable, ReentrancyGuard {
     }
     
     /**
-     * @notice Revoke a vesting schedule and refund unvested tokens
+     * @notice Revoke a vesting schedule and refund unvested tokens to funder
      * @param beneficiary Address of beneficiary to revoke
      */
-    function revoke(address beneficiary) external onlyOwner {
+    function revoke(address beneficiary) external nonReentrant {
         VestingSchedule storage schedule = vestingSchedules[beneficiary];
         
         require(schedule.revocable, "Not revocable");
         require(!schedule.revoked, "Already revoked");
+        require(msg.sender == owner() || msg.sender == schedule.funder, "Not authorized");
         
         uint256 vested = vestedAmount(beneficiary);
         uint256 refund = schedule.totalAmount - vested;
         
         schedule.revoked = true;
         
+        // FIXED: Refund goes to original funder, not contract owner
         if (refund > 0) {
-            require(token.transfer(owner(), refund), "Refund failed");
+            require(token.transfer(schedule.funder, refund), "Refund failed");
         }
         
-        emit VestingRevoked(beneficiary, refund);
+        emit VestingRevoked(beneficiary, schedule.funder, refund);
+    }
+    
+    /**
+     * @notice NEW: Update beneficiary address (for lost keys)
+     * @param oldBeneficiary Current beneficiary address
+     * @param newBeneficiary New beneficiary address
+     */
+    function updateBeneficiary(address oldBeneficiary, address newBeneficiary) external onlyOwner {
+        require(oldBeneficiary != address(0), "Invalid old beneficiary");
+        require(newBeneficiary != address(0), "Invalid new beneficiary");
+        require(vestingSchedules[oldBeneficiary].totalAmount > 0, "No schedule for old beneficiary");
+        require(vestingSchedules[newBeneficiary].totalAmount == 0, "New beneficiary already has schedule");
+        require(!vestingSchedules[oldBeneficiary].revoked, "Schedule already revoked");
+        
+        // Transfer the schedule
+        vestingSchedules[newBeneficiary] = vestingSchedules[oldBeneficiary];
+        delete vestingSchedules[oldBeneficiary];
+        
+        // Update beneficiary tracking
+        isBeneficiary[oldBeneficiary] = false;
+        if (!isBeneficiary[newBeneficiary]) {
+            beneficiaries.push(newBeneficiary);
+            isBeneficiary[newBeneficiary] = true;
+        }
+        
+        emit BeneficiaryUpdated(oldBeneficiary, newBeneficiary);
     }
     
     /**
@@ -185,5 +219,24 @@ contract VestingVault is Ownable, ReentrancyGuard {
      */
     function getVestingSchedule(address beneficiary) external view returns (VestingSchedule memory) {
         return vestingSchedules[beneficiary];
+    }
+    
+    /**
+     * @notice NEW: Get remaining vesting time
+     * @param beneficiary Address to check
+     * @return Time remaining until fully vested (0 if already vested)
+     */
+    function getRemainingTime(address beneficiary) external view returns (uint256) {
+        VestingSchedule memory schedule = vestingSchedules[beneficiary];
+        if (schedule.totalAmount == 0 || schedule.revoked) {
+            return 0;
+        }
+        
+        uint256 endTime = schedule.startTime + schedule.vestingDuration;
+        if (block.timestamp >= endTime) {
+            return 0;
+        }
+        
+        return endTime - block.timestamp;
     }
 }

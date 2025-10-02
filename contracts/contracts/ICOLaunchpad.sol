@@ -2,13 +2,14 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title ICOLaunchpad
  * @dev Registry contract for tracking deployed ICO sales
  * @notice Central registry for all deployed token sales
  */
-contract ICOLaunchpad is Ownable {
+contract ICOLaunchpad is Ownable, ReentrancyGuard {
     struct DeployedSale {
         address saleContract;
         address tokenContract;
@@ -34,6 +35,8 @@ contract ICOLaunchpad is Ownable {
     
     uint256 public nextSaleId;
     uint256 public platformFeePercent = 2; // 2% platform fee
+    uint256 public totalFeesCollected;
+    mapping(uint256 => uint256) public saleFeesCollected;
     
     event SaleDeployed(
         uint256 indexed saleId,
@@ -48,6 +51,7 @@ contract ICOLaunchpad is Ownable {
     event PlatformFeeUpdated(uint256 newFeePercent);
     event DeployerAuthorized(address indexed deployer);
     event DeployerRevoked(address indexed deployer);
+    event PlatformFeeCollected(uint256 indexed saleId, uint256 amount);
     
     modifier onlyAuthorized() {
         require(
@@ -197,4 +201,67 @@ contract ICOLaunchpad is Ownable {
         }
         return count;
     }
+    
+    /**
+     * @notice Collect platform fee from a finalized sale
+     * @param saleId Sale ID to collect fee from
+     */
+    function collectPlatformFee(uint256 saleId) external nonReentrant {
+        require(saleId < nextSaleId, "Sale does not exist");
+        require(sales[saleId].active, "Sale not active");
+        require(saleFeesCollected[saleId] == 0, "Fee already collected");
+        
+        DeployedSale memory sale = sales[saleId];
+        
+        // Get the sale contract
+        (bool success, bytes memory data) = sale.saleContract.call(
+            abi.encodeWithSignature("finalized()")
+        );
+        require(success, "Failed to check finalized status");
+        bool finalized = abi.decode(data, (bool));
+        require(finalized, "Sale not finalized");
+        
+        // Get funds raised
+        (success, data) = sale.saleContract.call(
+            abi.encodeWithSignature("fundsRaised()")
+        );
+        require(success, "Failed to get funds raised");
+        uint256 fundsRaised = abi.decode(data, (uint256));
+        
+        // Calculate platform fee
+        uint256 feeAmount = (fundsRaised * platformFeePercent) / 100;
+        require(feeAmount > 0, "No fee to collect");
+        
+        // Transfer fee from sale contract to launchpad
+        (success, ) = sale.saleContract.call{value: 0}(
+            abi.encodeWithSignature("transfer(address,uint256)", address(this), feeAmount)
+        );
+        require(success, "Fee transfer failed");
+        
+        saleFeesCollected[saleId] = feeAmount;
+        totalFeesCollected += feeAmount;
+        
+        emit PlatformFeeCollected(saleId, feeAmount);
+    }
+    
+    /**
+     * @notice Withdraw collected platform fees
+     */
+    function withdrawPlatformFees() external onlyOwner nonReentrant {
+        uint256 balance = address(this).balance;
+        require(balance > 0, "No fees to withdraw");
+        
+        payable(owner()).transfer(balance);
+    }
+    
+    /**
+     * @notice Get platform fee for a sale
+     * @param fundsRaised Amount raised in the sale
+     * @return Platform fee amount
+     */
+    function calculatePlatformFee(uint256 fundsRaised) external view returns (uint256) {
+        return (fundsRaised * platformFeePercent) / 100;
+    }
+    
+    receive() external payable {}
 }
