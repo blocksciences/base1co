@@ -1,538 +1,450 @@
-import { Header } from '@/components/Header';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Lock, Unlock, TrendingUp, Info, Loader2, Check } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { useAccount, useBalance } from 'wagmi';
-import { useStakingPools, useUserStakes, useTotalStaked, useStake, useUnstake, useUpdateRewards } from '@/hooks/useStaking';
-import { toast } from 'sonner';
-import { parseEther, formatEther } from 'viem';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Header } from "@/components/Header";
+import { usePlatformStaking } from "@/hooks/usePlatformStaking";
+import { useAccount } from "wagmi";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { Lock, TrendingUp, Gift, Trophy, Clock, CheckCircle2, Coins, Loader2 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 export const Staking = () => {
-  const { address, isConnected } = useAccount();
-  const { data: balance } = useBalance({ address });
-  const { data: pools, isLoading: loadingPools } = useStakingPools();
-  const { data: userStakes, isLoading: loadingStakes } = useUserStakes();
-  const { totalStaked, totalRewards } = useTotalStaked();
-  const updateRewards = useUpdateRewards();
-  
-  const [stakeAmount, setStakeAmount] = useState('');
-  const [selectedPoolId, setSelectedPoolId] = useState<string>('');
-  const [selectedStakeId, setSelectedStakeId] = useState<string>('');
-  const [unstakeAmount, setUnstakeAmount] = useState('');
-  
-  const stakeMutation = useStake();
-  const unstakeMutation = useUnstake();
-  
-  const selectedPool = pools?.find(p => p.id === selectedPoolId);
-  const selectedStake = userStakes?.find(s => s.id === selectedStakeId);
-  
-  // Auto-select first pool on load
-  useEffect(() => {
-    if (pools && pools.length > 0 && !selectedPoolId) {
-      setSelectedPoolId(pools[0].id);
-    }
-  }, [pools, selectedPoolId]);
-  
-  // Update rewards periodically
-  useEffect(() => {
-    if (!userStakes || userStakes.length === 0) return;
-    
-    const interval = setInterval(() => {
-      userStakes.forEach(stake => {
-        updateRewards.mutate(stake.id);
-      });
-    }, 60000); // Update every minute
-    
-    return () => clearInterval(interval);
-  }, [userStakes]);
-  
+  const { address } = useAccount();
+  const {
+    lockPeriods,
+    tiers,
+    userStakes,
+    userTier,
+    loading,
+    staking,
+    stake,
+    unstake,
+    claimRewards,
+    compoundRewards,
+    calculateRewards,
+  } = usePlatformStaking();
+
+  const [stakeAmount, setStakeAmount] = useState("");
+  const [selectedLockPeriod, setSelectedLockPeriod] = useState<string>("");
+  const [rewards, setRewards] = useState<Record<string, number>>({});
+
   const handleStake = async () => {
-    if (!isConnected) {
-      toast.error('Please connect your wallet');
+    if (!stakeAmount || !selectedLockPeriod) {
+      toast.error("Please enter amount and select lock period");
       return;
     }
-    
-    if (!selectedPoolId) {
-      toast.error('Please select a staking pool');
-      return;
-    }
-    
+
     const amount = parseFloat(stakeAmount);
-    if (!amount || amount <= 0) {
-      toast.error('Please enter a valid amount');
+    if (isNaN(amount) || amount < 100) {
+      toast.error("Minimum stake is 100 LIST tokens");
       return;
     }
-    
-    if (selectedPool && amount < selectedPool.min_stake_amount) {
-      toast.error(`Minimum stake amount is ${selectedPool.min_stake_amount} ETH`);
-      return;
-    }
-    
-    if (balance && amount > parseFloat(formatEther(balance.value))) {
-      toast.error('Insufficient balance');
-      return;
-    }
-    
-    try {
-      await stakeMutation.mutateAsync({
-        poolId: selectedPoolId,
-        amount,
-      });
-      
-      toast.success('Successfully staked!');
-      setStakeAmount('');
-    } catch (error) {
-      console.error('Staking error:', error);
-      toast.error('Failed to stake');
+
+    const success = await stake(amount, selectedLockPeriod);
+    if (success) {
+      setStakeAmount("");
+      setSelectedLockPeriod("");
     }
   };
-  
-  const handleUnstake = async () => {
-    if (!isConnected) {
-      toast.error('Please connect your wallet');
-      return;
-    }
-    
-    if (!selectedStakeId || !selectedStake) {
-      toast.error('Please select a stake to unstake');
-      return;
-    }
-    
-    const amount = parseFloat(unstakeAmount);
-    if (!amount || amount <= 0) {
-      toast.error('Please enter a valid amount');
-      return;
-    }
-    
-    if (amount > selectedStake.staked_amount) {
-      toast.error('Amount exceeds staked balance');
-      return;
-    }
-    
-    try {
-      const result = await unstakeMutation.mutateAsync({
-        stakeId: selectedStakeId,
-        amount,
-      });
-      
-      toast.success(`Successfully unstaked ${amount} ETH + ${result.rewards.toFixed(4)} ETH rewards!`);
-      setUnstakeAmount('');
-      setSelectedStakeId('');
-    } catch (error) {
-      console.error('Unstaking error:', error);
-      toast.error('Failed to unstake');
-    }
+
+  const handleUnstake = async (stakeId: string) => {
+    await unstake(stakeId);
   };
-  
-  const setMaxStake = () => {
-    if (balance) {
-      // Reserve some for gas
-      const maxAmount = Math.max(0, parseFloat(formatEther(balance.value)) - 0.01);
-      setStakeAmount(maxAmount.toString());
-    }
+
+  const handleClaimRewards = async (stakeId: string) => {
+    await claimRewards(stakeId);
   };
-  
-  const setMaxUnstake = () => {
-    if (selectedStake) {
-      setUnstakeAmount(selectedStake.staked_amount.toString());
-    }
+
+  const handleCompound = async (stakeId: string) => {
+    await compoundRewards(stakeId);
   };
-  
+
+  // Load rewards for active stakes
+  useEffect(() => {
+    const loadRewards = async () => {
+      const rewardsMap: Record<string, number> = {};
+      for (const stake of userStakes.filter(s => s.status === 'active')) {
+        const reward = await calculateRewards(stake.id);
+        rewardsMap[stake.id] = reward;
+      }
+      setRewards(rewardsMap);
+    };
+
+    if (userStakes.length > 0) {
+      loadRewards();
+      // Refresh rewards every minute
+      const interval = setInterval(loadRewards, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [userStakes]);
+
   return (
     <div className="min-h-screen">
       <Header />
-      
-      <section className="container px-4 py-12">
-        <div className="max-w-4xl mx-auto space-y-8">
-          <div className="text-center space-y-4">
-            <h1 className="text-4xl md:text-5xl font-bold">
-              Stake & <span className="bg-gradient-primary bg-clip-text text-transparent">Earn</span>
-            </h1>
-            <p className="text-xl text-muted-foreground">
-              Stake your tokens to earn rewards and support the ecosystem
-            </p>
-          </div>
-          
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="glass p-6 space-y-2">
-              <p className="text-sm text-muted-foreground">Total Platform Staked</p>
-              <p className="text-3xl font-bold">
-                {loadingPools ? (
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                ) : (
-                  `${pools?.reduce((sum, p) => sum + Number(p.total_staked), 0).toFixed(2) || '0.00'} ETH`
-                )}
-              </p>
-              <p className="text-xs text-success">Across all pools</p>
-            </Card>
-            <Card className="glass p-6 space-y-2">
-              <p className="text-sm text-muted-foreground">Best APY</p>
-              <p className="text-3xl font-bold text-success">
-                {loadingPools ? (
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                ) : (
-                  `${pools?.[0]?.apy_rate || '0'}%`
-                )}
-              </p>
-              <p className="text-xs text-muted-foreground">90-day lock period</p>
-            </Card>
-            <Card className="glass p-6 space-y-2">
-              <p className="text-sm text-muted-foreground">Your Total Staked</p>
-              <p className="text-3xl font-bold">
-                {loadingStakes ? (
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                ) : (
-                  `${totalStaked.toFixed(4)} ETH`
-                )}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {totalRewards > 0 ? `+${totalRewards.toFixed(6)} ETH rewards` : 'Start earning today'}
-              </p>
-            </Card>
-          </div>
-          
-          {/* Staking Interface */}
-          <Card className="glass p-8">
-            <Tabs defaultValue="stake" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="stake" className="gap-2">
-                  <Lock className="h-4 w-4" />
-                  Stake
-                </TabsTrigger>
-                <TabsTrigger value="unstake" className="gap-2">
-                  <Unlock className="h-4 w-4" />
-                  Unstake
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="stake" className="space-y-6">
-                <div className="space-y-4">
-                  {/* Pool Selection */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Select Staking Pool</label>
-                    <div className="grid grid-cols-1 gap-3">
-                      {pools?.map((pool) => (
-                        <Card
-                          key={pool.id}
-                          className={`p-4 cursor-pointer transition-all ${
-                            selectedPoolId === pool.id
-                              ? 'ring-2 ring-primary bg-primary/5'
-                              : 'hover:border-primary/50'
-                          }`}
-                          onClick={() => setSelectedPoolId(pool.id)}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              {selectedPoolId === pool.id && (
-                                <Check className="h-5 w-5 text-primary" />
-                              )}
-                              <div>
-                                <p className="font-semibold">{pool.name}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  Min: {pool.min_stake_amount} ETH
-                                </p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <Badge className="bg-success text-success-foreground">
-                                {pool.apy_rate}% APY
-                              </Badge>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {pool.lock_period_days > 0
-                                  ? `${pool.lock_period_days}-day lock`
-                                  : 'Flexible'}
-                              </p>
-                            </div>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
+      <div className="container mx-auto px-4 py-12">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-4">
+            LIST Token <span className="bg-gradient-primary bg-clip-text text-transparent">Staking</span>
+          </h1>
+          <p className="text-muted-foreground">Stake LIST tokens to earn rewards and unlock platform benefits</p>
+        </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium">Amount to Stake</label>
-                      <span className="text-xs text-muted-foreground">
-                        Balance: {balance ? parseFloat(formatEther(balance.value)).toFixed(4) : '0.00'} ETH
-                      </span>
+        {loading ? (
+          <div className="text-center py-12">
+            <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+            <p className="mt-4 text-muted-foreground">Loading staking data...</p>
+          </div>
+        ) : (
+          <Tabs defaultValue="stake" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="stake">Stake</TabsTrigger>
+              <TabsTrigger value="my-stakes">My Stakes</TabsTrigger>
+              <TabsTrigger value="tiers">Tiers & Benefits</TabsTrigger>
+            </TabsList>
+
+            {/* Overview Cards */}
+            {address && userTier && (
+              <div className="grid gap-4 md:grid-cols-3">
+                <Card className="glass">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium">Your Tier</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-2">
+                      <Trophy className="h-5 w-5" style={{ color: userTier.current_tier.tier_color }} />
+                      <span className="text-2xl font-bold">{userTier.current_tier.tier_name}</span>
                     </div>
-                    <Input
-                      type="number"
-                      placeholder="0.0"
-                      value={stakeAmount}
-                      onChange={(e) => setStakeAmount(e.target.value)}
-                      className="h-14 text-lg"
-                      disabled={!isConnected}
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          setStakeAmount(balance ? (parseFloat(formatEther(balance.value)) * 0.25).toString() : '0')
-                        }
-                        disabled={!isConnected}
-                      >
-                        25%
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          setStakeAmount(balance ? (parseFloat(formatEther(balance.value)) * 0.5).toString() : '0')
-                        }
-                        disabled={!isConnected}
-                      >
-                        50%
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          setStakeAmount(balance ? (parseFloat(formatEther(balance.value)) * 0.75).toString() : '0')
-                        }
-                        disabled={!isConnected}
-                      >
-                        75%
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={setMaxStake} disabled={!isConnected}>
-                        MAX
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  {selectedPool && stakeAmount && parseFloat(stakeAmount) > 0 && (
-                    <div className="p-4 rounded-lg bg-muted/20 space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Estimated Annual Rewards</span>
-                        <span className="font-semibold">
-                          {(parseFloat(stakeAmount) * (selectedPool.apy_rate / 100)).toFixed(4)} ETH
-                        </span>
+                    {userTier.next_tier && (
+                      <div className="mt-4">
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>Next: {userTier.next_tier.tier_name}</span>
+                          <span>{userTier.progress_to_next.toFixed(0)}%</span>
+                        </div>
+                        <Progress value={userTier.progress_to_next} />
                       </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Lock Period</span>
-                        <span className="font-semibold">
-                          {selectedPool.lock_period_days > 0
-                            ? `${selectedPool.lock_period_days} days`
-                            : 'Flexible'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">APY</span>
-                        <span className="font-semibold text-success">{selectedPool.apy_rate}%</span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <Button
-                    className="w-full h-12 bg-gradient-primary hover:opacity-90"
-                    onClick={handleStake}
-                    disabled={!isConnected || stakeMutation.isPending || !stakeAmount}
-                  >
-                    {stakeMutation.isPending ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Staking...
-                      </>
-                    ) : !isConnected ? (
-                      'Connect Wallet'
-                    ) : (
-                      'Stake Tokens'
                     )}
-                  </Button>
-                  
-                  <div className="flex items-start gap-2 p-4 rounded-lg bg-primary/10 border border-primary/20">
-                    <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-muted-foreground">
-                      Your staked tokens will start earning rewards immediately. 
-                      {selectedPool?.lock_period_days === 0
-                        ? ' You can unstake at any time with no penalties.'
-                        : ` Lock period: ${selectedPool?.lock_period_days} days.`}
+                  </CardContent>
+                </Card>
+
+                <Card className="glass">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium">Total Staked</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{userTier.total_staked.toLocaleString()} LIST</div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {userStakes.filter(s => s.status === 'active').length} active stakes
                     </p>
-                  </div>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="unstake" className="space-y-6">
-                <div className="space-y-4">
-                  {/* Active Stakes Selection */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Select Stake to Unstake</label>
-                    {loadingStakes ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </CardContent>
+                </Card>
+
+                <Card className="glass">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium">Platform Benefits</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-1">
+                      <div className="text-sm">
+                        <span className="font-medium">{userTier.current_tier.platform_fee_discount}%</span> fee discount
                       </div>
-                    ) : userStakes && userStakes.length > 0 ? (
-                      <div className="grid grid-cols-1 gap-3">
-                        {userStakes.map((stake) => (
+                      <div className="text-sm">
+                        <span className="font-medium">{userTier.current_tier.allocation_multiplier}x</span> allocation
+                      </div>
+                      <div className="text-sm">
+                        <span className="font-medium">{userTier.current_tier.governance_votes}</span> governance votes
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Stake Tab */}
+            <TabsContent value="stake" className="space-y-6">
+              <Card className="glass">
+                <CardHeader>
+                  <CardTitle>Stake LIST Tokens</CardTitle>
+                  <CardDescription>Choose a lock period and stake amount to start earning rewards</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div>
+                      <Label htmlFor="amount">Amount to Stake (Minimum: 100 LIST)</Label>
+                      <Input
+                        id="amount"
+                        type="number"
+                        placeholder="Enter amount"
+                        value={stakeAmount}
+                        onChange={(e) => setStakeAmount(e.target.value)}
+                        className="mt-2 h-12"
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="mb-4 block">Select Lock Period</Label>
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {lockPeriods.map((period) => (
                           <Card
-                            key={stake.id}
-                            className={`p-4 cursor-pointer transition-all ${
-                              selectedStakeId === stake.id
-                                ? 'ring-2 ring-primary bg-primary/5'
-                                : 'hover:border-primary/50'
+                            key={period.id}
+                            className={`cursor-pointer transition-all hover:border-primary ${
+                              selectedLockPeriod === period.id ? 'border-primary bg-primary/5 ring-2 ring-primary' : ''
                             }`}
-                            onClick={() => {
-                              setSelectedStakeId(stake.id);
-                              setUnstakeAmount(stake.staked_amount.toString());
-                            }}
+                            onClick={() => setSelectedLockPeriod(period.id)}
                           >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                {selectedStakeId === stake.id && (
-                                  <Check className="h-5 w-5 text-primary" />
-                                )}
-                                <div>
-                                  <p className="font-semibold">{stake.staked_amount} ETH Staked</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    Since {new Date(stake.staked_at).toLocaleDateString()}
-                                  </p>
-                                </div>
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <h3 className="font-semibold">{period.name}</h3>
+                                <Badge variant="secondary" className="bg-success text-success-foreground">{period.apy_rate}% APY</Badge>
                               </div>
-                              <div className="text-right">
-                                <p className="text-sm font-semibold text-success">
-                                  +{stake.rewards_earned.toFixed(6)} ETH
-                                </p>
-                                <p className="text-xs text-muted-foreground">Rewards</p>
+                              <p className="text-sm text-muted-foreground mb-2">{period.description}</p>
+                              <div className="flex items-center gap-2 text-sm">
+                                <Lock className="h-4 w-4" />
+                                <span>{period.duration_days === 0 ? 'No lock' : `${period.duration_days} days`}</span>
                               </div>
-                            </div>
+                              <div className="flex items-center gap-2 text-sm mt-1">
+                                <TrendingUp className="h-4 w-4" />
+                                <span>{period.multiplier}x multiplier</span>
+                              </div>
+                            </CardContent>
                           </Card>
                         ))}
                       </div>
-                    ) : (
-                      <Card className="p-8 text-center">
-                        <p className="text-muted-foreground">No active stakes</p>
-                        <p className="text-sm text-muted-foreground mt-2">
-                          Stake some tokens to start earning rewards
-                        </p>
-                      </Card>
-                    )}
-                  </div>
+                    </div>
 
-                  {selectedStake && (
-                    <>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <label className="text-sm font-medium">Amount to Unstake</label>
-                          <span className="text-xs text-muted-foreground">
-                            Staked: {selectedStake.staked_amount} ETH
-                          </span>
+                    <Button
+                      onClick={handleStake}
+                      disabled={!address || !stakeAmount || !selectedLockPeriod || staking}
+                      className="w-full h-12 bg-gradient-primary hover:opacity-90"
+                      size="lg"
+                    >
+                      {staking ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Staking...
+                        </>
+                      ) : address ? (
+                        'Stake Tokens'
+                      ) : (
+                        'Connect Wallet'
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* APY Calculator */}
+              {stakeAmount && selectedLockPeriod && (
+                <Card className="glass">
+                  <CardHeader>
+                    <CardTitle>Estimated Rewards</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {(() => {
+                      const amount = parseFloat(stakeAmount) || 0;
+                      const period = lockPeriods.find(p => p.id === selectedLockPeriod);
+                      if (!period || amount < 100) return null;
+
+                      const yearlyReward = amount * (period.apy_rate / 100) * period.multiplier;
+                      const dailyReward = yearlyReward / 365;
+
+                      return (
+                        <div className="space-y-3">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Daily Rewards:</span>
+                            <span className="font-semibold">{dailyReward.toFixed(2)} LIST</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Yearly Rewards:</span>
+                            <span className="font-semibold">{yearlyReward.toFixed(2)} LIST</span>
+                          </div>
+                          <div className="flex justify-between text-lg">
+                            <span className="font-medium">Total After Period:</span>
+                            <span className="font-bold text-success">
+                              {(amount + (yearlyReward * (period.duration_days / 365))).toFixed(2)} LIST
+                            </span>
+                          </div>
                         </div>
-                        <Input
-                          type="number"
-                          placeholder="0.0"
-                          value={unstakeAmount}
-                          onChange={(e) => setUnstakeAmount(e.target.value)}
-                          className="h-14 text-lg"
-                          max={selectedStake.staked_amount}
-                        />
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setUnstakeAmount((selectedStake.staked_amount * 0.25).toString())}
-                          >
-                            25%
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setUnstakeAmount((selectedStake.staked_amount * 0.5).toString())}
-                          >
-                            50%
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setUnstakeAmount((selectedStake.staked_amount * 0.75).toString())}
-                          >
-                            75%
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={setMaxUnstake}>
-                            MAX
-                          </Button>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* My Stakes Tab */}
+            <TabsContent value="my-stakes">
+              {!address ? (
+                <Card className="glass">
+                  <CardContent className="py-12 text-center">
+                    <p className="text-muted-foreground">Connect your wallet to view your stakes</p>
+                  </CardContent>
+                </Card>
+              ) : userStakes.length === 0 ? (
+                <Card className="glass">
+                  <CardContent className="py-12 text-center">
+                    <p className="text-muted-foreground">You don't have any stakes yet</p>
+                    <Button className="mt-4" onClick={() => document.querySelector<HTMLElement>('[value="stake"]')?.click()}>
+                      Start Staking
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-4">
+                  {userStakes.map((stake) => (
+                    <Card key={stake.id} className="glass">
+                      <CardContent className="p-6">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Coins className="h-5 w-5 text-primary" />
+                              <span className="text-2xl font-bold">{stake.amount.toLocaleString()} LIST</span>
+                              <Badge variant={stake.status === 'active' ? 'default' : 'secondary'}>
+                                {stake.status}
+                              </Badge>
+                            </div>
+                            {stake.lock_period && (
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                  <Lock className="h-4 w-4" />
+                                  <span>{stake.lock_period.name}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <TrendingUp className="h-4 w-4" />
+                                  <span>{stake.lock_period.apy_rate}% APY</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-4 w-4" />
+                                  <span>
+                                    {new Date(stake.unlock_time) > new Date()
+                                      ? `Unlocks ${formatDistanceToNow(new Date(stake.unlock_time), { addSuffix: true })}`
+                                      : 'Unlocked'}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2 text-sm">
+                              <Gift className="h-4 w-4 text-success" />
+                              <span>Pending Rewards: <strong>{(rewards[stake.id] || 0).toFixed(4)} LIST</strong></span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Total Claimed: {stake.total_rewards_claimed.toFixed(4)} LIST
+                            </div>
+                          </div>
+
+                          {stake.status === 'active' && (
+                            <div className="flex flex-col gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleClaimRewards(stake.id)}
+                                disabled={!rewards[stake.id] || rewards[stake.id] === 0}
+                              >
+                                Claim Rewards
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleCompound(stake.id)}
+                                disabled={!rewards[stake.id] || rewards[stake.id] === 0}
+                              >
+                                Compound
+                              </Button>
+                              {new Date(stake.unlock_time) <= new Date() && (
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handleUnstake(stake.id)}
+                                >
+                                  Unstake
+                                </Button>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                      
-                      <div className="p-4 rounded-lg bg-muted/20 space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Pending Rewards</span>
-                          <span className="font-semibold">{selectedStake.rewards_earned.toFixed(6)} ETH</span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Unstaking Fee</span>
-                          <span className="font-semibold">0%</span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">You Will Receive</span>
-                          <span className="font-semibold text-success">
-                            {unstakeAmount ? (
-                              parseFloat(unstakeAmount) + selectedStake.rewards_earned
-                            ).toFixed(6) : '0.000000'} ETH
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <Button
-                        className="w-full h-12 bg-gradient-primary hover:opacity-90"
-                        onClick={handleUnstake}
-                        disabled={unstakeMutation.isPending || !unstakeAmount}
-                      >
-                        {unstakeMutation.isPending ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Unstaking...
-                          </>
-                        ) : (
-                          'Unstake Tokens'
-                        )}
-                      </Button>
-                      
-                      <div className="flex items-start gap-2 p-4 rounded-lg bg-primary/10 border border-primary/20">
-                        <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-muted-foreground">
-                          Unstaking is instant with no penalties. Your rewards will be automatically 
-                          claimed when you unstake.
-                        </p>
-                      </div>
-                    </>
-                  )}
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
-              </TabsContent>
-            </Tabs>
-          </Card>
-          
-          {/* Additional Info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="glass p-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <TrendingUp className="h-8 w-8 text-success" />
-                <h3 className="text-lg font-bold">Flexible Staking</h3>
+              )}
+            </TabsContent>
+
+            {/* Tiers Tab */}
+            <TabsContent value="tiers">
+              <div className="grid gap-4">
+                {tiers.map((tier, index) => (
+                  <Card key={tier.id} className={`glass ${index === 0 ? 'opacity-60' : ''}`}>
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-3 flex-1">
+                          <div className="flex items-center gap-3">
+                            <Trophy className="h-6 w-6" style={{ color: tier.tier_color }} />
+                            <div>
+                              <h3 className="text-xl font-bold">{tier.tier_name}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                Minimum Stake: {tier.min_stake.toLocaleString()} LIST
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="grid md:grid-cols-2 gap-3 text-sm">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="h-4 w-4 text-success" />
+                              <span>{tier.platform_fee_discount}% Platform Fee Discount</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="h-4 w-4 text-success" />
+                              <span>{tier.allocation_multiplier}x Allocation Multiplier</span>
+                            </div>
+                            {tier.early_access_hours > 0 && (
+                              <div className="flex items-center gap-2">
+                                <CheckCircle2 className="h-4 w-4 text-success" />
+                                <span>{tier.early_access_hours}h Early Access</span>
+                              </div>
+                            )}
+                            {tier.guaranteed_allocation && (
+                              <div className="flex items-center gap-2">
+                                <CheckCircle2 className="h-4 w-4 text-success" />
+                                <span>Guaranteed Allocation</span>
+                              </div>
+                            )}
+                            {tier.governance_votes > 0 && (
+                              <div className="flex items-center gap-2">
+                                <CheckCircle2 className="h-4 w-4 text-success" />
+                                <span>{tier.governance_votes} Governance Votes</span>
+                              </div>
+                            )}
+                            {tier.exclusive_whitelist && (
+                              <div className="flex items-center gap-2">
+                                <CheckCircle2 className="h-4 w-4 text-success" />
+                                <span>Exclusive Project Whitelist</span>
+                              </div>
+                            )}
+                            {tier.priority_queue && (
+                              <div className="flex items-center gap-2">
+                                <CheckCircle2 className="h-4 w-4 text-success" />
+                                <span>Priority Queue Access</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {userTier && userTier.current_tier.id === tier.id && (
+                          <Badge className="ml-4 bg-gradient-primary">Your Tier</Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
-              <p className="text-sm text-muted-foreground">
-                Stake and unstake at any time with no lock-up periods or penalties. 
-                Your rewards are calculated and distributed in real-time.
-              </p>
-            </Card>
-            
-            <Card className="glass p-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <Lock className="h-8 w-8 text-primary" />
-                <h3 className="text-lg font-bold">Secure & Audited</h3>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Our staking contracts are audited by leading security firms and built 
-                with battle-tested OpenZeppelin contracts.
-              </p>
-            </Card>
-          </div>
-        </div>
-      </section>
+            </TabsContent>
+          </Tabs>
+        )}
+      </div>
     </div>
   );
 };

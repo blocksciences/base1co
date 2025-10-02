@@ -253,6 +253,95 @@ export type Database = {
         }
         Relationships: []
       }
+      governance_proposals: {
+        Row: {
+          created_at: string | null
+          description: string
+          end_time: string
+          executed_at: string | null
+          execution_data: Json | null
+          id: string
+          proposal_type: string
+          proposer_address: string
+          start_time: string | null
+          status: string
+          title: string
+          votes_abstain: number | null
+          votes_against: number | null
+          votes_for: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          end_time: string
+          executed_at?: string | null
+          execution_data?: Json | null
+          id?: string
+          proposal_type: string
+          proposer_address: string
+          start_time?: string | null
+          status?: string
+          title: string
+          votes_abstain?: number | null
+          votes_against?: number | null
+          votes_for?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          end_time?: string
+          executed_at?: string | null
+          execution_data?: Json | null
+          id?: string
+          proposal_type?: string
+          proposer_address?: string
+          start_time?: string | null
+          status?: string
+          title?: string
+          votes_abstain?: number | null
+          votes_against?: number | null
+          votes_for?: number | null
+        }
+        Relationships: []
+      }
+      governance_votes: {
+        Row: {
+          created_at: string | null
+          id: string
+          proposal_id: string | null
+          tx_hash: string | null
+          vote_choice: string
+          vote_weight: number
+          voter_address: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          proposal_id?: string | null
+          tx_hash?: string | null
+          vote_choice: string
+          vote_weight: number
+          voter_address: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          proposal_id?: string | null
+          tx_hash?: string | null
+          vote_choice?: string
+          vote_weight?: number
+          voter_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "governance_votes_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "governance_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kyc_submissions: {
         Row: {
           country: string
@@ -443,6 +532,198 @@ export type Database = {
           total_transactions_24h?: number | null
           total_users?: number | null
           total_volume_24h_usd?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      platform_fees_collected: {
+        Row: {
+          amount_burned: number
+          amount_collected: number
+          amount_to_stakers: number
+          collected_at: string | null
+          distributed_at: string | null
+          distribution_status: string | null
+          id: string
+          project_id: string | null
+        }
+        Insert: {
+          amount_burned?: number
+          amount_collected: number
+          amount_to_stakers?: number
+          collected_at?: string | null
+          distributed_at?: string | null
+          distribution_status?: string | null
+          id?: string
+          project_id?: string | null
+        }
+        Update: {
+          amount_burned?: number
+          amount_collected?: number
+          amount_to_stakers?: number
+          collected_at?: string | null
+          distributed_at?: string | null
+          distribution_status?: string | null
+          id?: string
+          project_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_fees_collected_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_stakes: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          last_reward_claim: string
+          lock_period_id: string | null
+          rewards_earned: number | null
+          stake_id_onchain: number | null
+          start_time: string
+          status: string
+          total_rewards_claimed: number | null
+          tx_hash: string | null
+          unlock_time: string
+          updated_at: string | null
+          wallet_address: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          last_reward_claim?: string
+          lock_period_id?: string | null
+          rewards_earned?: number | null
+          stake_id_onchain?: number | null
+          start_time?: string
+          status?: string
+          total_rewards_claimed?: number | null
+          tx_hash?: string | null
+          unlock_time: string
+          updated_at?: string | null
+          wallet_address: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          last_reward_claim?: string
+          lock_period_id?: string | null
+          rewards_earned?: number | null
+          stake_id_onchain?: number | null
+          start_time?: string
+          status?: string
+          total_rewards_claimed?: number | null
+          tx_hash?: string | null
+          unlock_time?: string
+          updated_at?: string | null
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_stakes_lock_period_id_fkey"
+            columns: ["lock_period_id"]
+            isOneToOne: false
+            referencedRelation: "staking_lock_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_staking_transactions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          stake_id: string | null
+          status: string
+          transaction_type: string
+          tx_hash: string | null
+          wallet_address: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          stake_id?: string | null
+          status?: string
+          transaction_type: string
+          tx_hash?: string | null
+          wallet_address: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          stake_id?: string | null
+          status?: string
+          transaction_type?: string
+          tx_hash?: string | null
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_staking_transactions_stake_id_fkey"
+            columns: ["stake_id"]
+            isOneToOne: false
+            referencedRelation: "platform_stakes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_token_config: {
+        Row: {
+          allocation_ecosystem: number
+          allocation_ico_participants: number
+          allocation_liquidity: number
+          allocation_staking_rewards: number
+          allocation_team: number
+          created_at: string | null
+          decimals: number
+          id: string
+          staking_vault_address: string | null
+          token_address: string | null
+          token_name: string
+          token_symbol: string
+          total_supply: number
+          updated_at: string | null
+        }
+        Insert: {
+          allocation_ecosystem?: number
+          allocation_ico_participants?: number
+          allocation_liquidity?: number
+          allocation_staking_rewards?: number
+          allocation_team?: number
+          created_at?: string | null
+          decimals?: number
+          id?: string
+          staking_vault_address?: string | null
+          token_address?: string | null
+          token_name?: string
+          token_symbol?: string
+          total_supply?: number
+          updated_at?: string | null
+        }
+        Update: {
+          allocation_ecosystem?: number
+          allocation_ico_participants?: number
+          allocation_liquidity?: number
+          allocation_staking_rewards?: number
+          allocation_team?: number
+          created_at?: string | null
+          decimals?: number
+          id?: string
+          staking_vault_address?: string | null
+          token_address?: string | null
+          token_name?: string
+          token_symbol?: string
+          total_supply?: number
           updated_at?: string | null
         }
         Relationships: []
@@ -814,6 +1095,42 @@ export type Database = {
         }
         Relationships: []
       }
+      staking_lock_periods: {
+        Row: {
+          apy_rate: number
+          created_at: string | null
+          description: string | null
+          duration_days: number
+          id: string
+          is_active: boolean | null
+          multiplier: number
+          name: string
+          period_key: string
+        }
+        Insert: {
+          apy_rate: number
+          created_at?: string | null
+          description?: string | null
+          duration_days?: number
+          id?: string
+          is_active?: boolean | null
+          multiplier?: number
+          name: string
+          period_key: string
+        }
+        Update: {
+          apy_rate?: number
+          created_at?: string | null
+          description?: string | null
+          duration_days?: number
+          id?: string
+          is_active?: boolean | null
+          multiplier?: number
+          name?: string
+          period_key?: string
+        }
+        Relationships: []
+      }
       staking_pools: {
         Row: {
           apy_rate: number
@@ -853,6 +1170,54 @@ export type Database = {
           token_symbol?: string
           total_staked?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      staking_tiers: {
+        Row: {
+          allocation_multiplier: number
+          created_at: string | null
+          early_access_hours: number
+          exclusive_whitelist: boolean | null
+          governance_votes: number
+          guaranteed_allocation: boolean | null
+          id: string
+          min_stake: number
+          platform_fee_discount: number
+          priority_queue: boolean | null
+          tier_color: string
+          tier_key: string
+          tier_name: string
+        }
+        Insert: {
+          allocation_multiplier?: number
+          created_at?: string | null
+          early_access_hours?: number
+          exclusive_whitelist?: boolean | null
+          governance_votes?: number
+          guaranteed_allocation?: boolean | null
+          id?: string
+          min_stake: number
+          platform_fee_discount?: number
+          priority_queue?: boolean | null
+          tier_color: string
+          tier_key: string
+          tier_name: string
+        }
+        Update: {
+          allocation_multiplier?: number
+          created_at?: string | null
+          early_access_hours?: number
+          exclusive_whitelist?: boolean | null
+          governance_votes?: number
+          guaranteed_allocation?: boolean | null
+          id?: string
+          min_stake?: number
+          platform_fee_discount?: number
+          priority_queue?: boolean | null
+          tier_color?: string
+          tier_key?: string
+          tier_name?: string
         }
         Relationships: []
       }
@@ -1074,6 +1439,38 @@ export type Database = {
           },
         ]
       }
+      user_tiers: {
+        Row: {
+          current_tier_id: string | null
+          id: string
+          total_staked: number
+          updated_at: string | null
+          wallet_address: string
+        }
+        Insert: {
+          current_tier_id?: string | null
+          id?: string
+          total_staked?: number
+          updated_at?: string | null
+          wallet_address: string
+        }
+        Update: {
+          current_tier_id?: string | null
+          id?: string
+          total_staked?: number
+          updated_at?: string | null
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_tiers_current_tier_id_fkey"
+            columns: ["current_tier_id"]
+            isOneToOne: false
+            referencedRelation: "staking_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vesting_schedules: {
         Row: {
           beneficiary_address: string
@@ -1177,9 +1574,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_platform_stake_rewards: {
+        Args: { stake_id: string }
+        Returns: number
+      }
       calculate_staking_rewards: {
         Args: { stake_id: string }
         Returns: number
+      }
+      get_user_tier: {
+        Args: { user_wallet: string }
+        Returns: string
       }
       is_admin: {
         Args: { check_user_id: string }
