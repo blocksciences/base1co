@@ -5,7 +5,7 @@ async function main() {
   const DEPLOYER_ADDRESS = "0x42b8c0eCC3E000af532f36f2fD0Cf42a26EfDf9C";
   
   // Get the ICOLaunchpad address from environment or hardcode it
-  const LAUNCHPAD_ADDRESS = process.env.ICO_LAUNCHPAD_ADDRESS || "YOUR_LAUNCHPAD_ADDRESS_HERE";
+  const LAUNCHPAD_ADDRESS = process.env.ICO_LAUNCHPAD_ADDRESS || "0x7c2Ae431f6562B342368A2B363861bb3c8b7028a";
   
   if (!LAUNCHPAD_ADDRESS || LAUNCHPAD_ADDRESS === "YOUR_LAUNCHPAD_ADDRESS_HERE") {
     throw new Error("Please set ICO_LAUNCHPAD_ADDRESS in your .env file");
