@@ -12,13 +12,14 @@ import {
   ExternalLink, Twitter, Globe, FileText,
   Loader2, CheckCircle2, AlertCircle, Lock
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { toast } from 'sonner';
 import { useICOContract } from '@/hooks/useICOContract';
 import { useProjectBlockchainData } from '@/hooks/useProjectBlockchainData';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
+import { KYCModal } from '@/components/KYCModal';
 
 const investmentSchema = z.object({
   amount: z.string()
@@ -40,9 +41,39 @@ export const ProjectDetail = () => {
   const [investAmount, setInvestAmount] = useState('');
   const [isInvesting, setIsInvesting] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
+  const [isKYCApproved, setIsKYCApproved] = useState(false);
+  const [checkingKYC, setCheckingKYC] = useState(false);
+  const [saleStatus, setSaleStatus] = useState({ hasStarted: false, hasEnded: false, canInvest: false });
+  const [showKYCModal, setShowKYCModal] = useState(false);
   
-  const { invest, claimRefund } = useICOContract(project?.contractAddress || '');
+  const { invest, claimRefund, checkKYCStatus, checkSaleStatus } = useICOContract(project?.contractAddress || '');
   const { saleInfo, isLoading: blockchainLoading } = useProjectBlockchainData(project?.contractAddress || null);
+  
+  // Check KYC and sale status when wallet connects or contract changes
+  useEffect(() => {
+    const checkStatuses = async () => {
+      if (!isConnected || !address || !project?.contractAddress) {
+        setIsKYCApproved(false);
+        return;
+      }
+
+      setCheckingKYC(true);
+      try {
+        const [kycStatus, status] = await Promise.all([
+          checkKYCStatus(),
+          checkSaleStatus()
+        ]);
+        setIsKYCApproved(kycStatus);
+        setSaleStatus(status);
+      } catch (error) {
+        console.error('Error checking statuses:', error);
+      } finally {
+        setCheckingKYC(false);
+      }
+    };
+
+    checkStatuses();
+  }, [isConnected, address, project?.contractAddress]);
   
   const handleInvest = async () => {
     // Validate input
@@ -269,6 +300,57 @@ export const ProjectDetail = () => {
               {/* Investment Form */}
               {project.status === 'live' && (
                 <div className="space-y-4">
+                  {/* KYC/Sale Status Alerts */}
+                  {isConnected && !checkingKYC && (
+                    <>
+                      {!saleStatus.hasStarted && (
+                        <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-start gap-3">
+                          <Clock className="h-5 w-5 text-yellow-500 mt-0.5" />
+                          <div>
+                            <p className="font-semibold text-yellow-600">Sale hasn't started yet</p>
+                            <p className="text-sm text-muted-foreground">Check back when the sale begins</p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {saleStatus.hasEnded && (
+                        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-3">
+                          <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
+                          <div>
+                            <p className="font-semibold text-red-600">Sale has ended</p>
+                            <p className="text-sm text-muted-foreground">This ICO is no longer accepting investments</p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {!isKYCApproved && saleStatus.canInvest && (
+                        <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg flex items-start gap-3">
+                          <Shield className="h-5 w-5 text-orange-500 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="font-semibold text-orange-600">KYC Required</p>
+                            <p className="text-sm text-muted-foreground mb-3">
+                              You must complete KYC verification before investing
+                            </p>
+                            <Button 
+                              size="sm" 
+                              onClick={() => setShowKYCModal(true)}
+                              className="bg-orange-500 hover:bg-orange-600"
+                            >
+                              Complete KYC
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {isKYCApproved && saleStatus.canInvest && (
+                        <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          <p className="text-sm text-green-600 font-medium">KYC Approved - Ready to invest</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Investment Amount (ETH)</label>
                     <Input
@@ -279,13 +361,37 @@ export const ProjectDetail = () => {
                       className="h-12 text-lg"
                       step="0.01"
                       min="0"
+                      disabled={!isConnected || !isKYCApproved || !saleStatus.canInvest}
                     />
                     <p className="text-xs text-muted-foreground">
                       You will receive: {investAmount ? (parseFloat(investAmount) / 0.05).toFixed(2) : '0'} {project.symbol}
                     </p>
                   </div>
                   
-                  {isConnected ? (
+                  {!isConnected ? (
+                    <Button className="w-full h-12 text-lg" variant="outline" disabled>
+                      Connect Wallet to Invest
+                    </Button>
+                  ) : checkingKYC ? (
+                    <Button className="w-full h-12 text-lg" disabled>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Checking Status...
+                    </Button>
+                  ) : !isKYCApproved ? (
+                    <Button 
+                      className="w-full h-12 text-lg" 
+                      variant="outline"
+                      onClick={() => setShowKYCModal(true)}
+                    >
+                      <Shield className="h-4 w-4 mr-2" />
+                      Complete KYC to Invest
+                    </Button>
+                  ) : !saleStatus.canInvest ? (
+                    <Button className="w-full h-12 text-lg" variant="outline" disabled>
+                      <Lock className="h-4 w-4 mr-2" />
+                      {!saleStatus.hasStarted ? 'Sale Not Started' : 'Sale Ended'}
+                    </Button>
+                  ) : (
                     <Button 
                       className="w-full h-12 text-lg bg-gradient-primary hover:opacity-90"
                       onClick={handleInvest}
@@ -299,10 +405,6 @@ export const ProjectDetail = () => {
                       ) : (
                         'Invest Now'
                       )}
-                    </Button>
-                  ) : (
-                    <Button className="w-full h-12 text-lg" variant="outline" disabled>
-                      Connect Wallet to Invest
                     </Button>
                   )}
                 </div>

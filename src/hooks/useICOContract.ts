@@ -19,6 +19,13 @@ const ICO_ABI = [
     type: 'function',
   },
   {
+    inputs: [],
+    name: 'kycRegistry',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
     inputs: [{ internalType: 'address', name: '', type: 'address' }],
     name: 'contributions',
     outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
@@ -50,6 +57,30 @@ const ICO_ABI = [
     inputs: [],
     name: 'getContributorCount',
     outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'startTime',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'endTime',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const;
+
+const KYC_REGISTRY_ABI = [
+  {
+    inputs: [{ internalType: 'address', name: 'user', type: 'address' }],
+    name: 'isEligible',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
     stateMutability: 'view',
     type: 'function',
   },
@@ -233,11 +264,78 @@ export const useICOContract = (contractAddress: string) => {
     }
   };
 
+  const checkKYCStatus = async (): Promise<boolean> => {
+    if (!isConnected || !address || !publicClient) {
+      return false;
+    }
+
+    try {
+      // Get KYC registry address from ICO contract
+      const kycRegistryAddress = await publicClient.readContract({
+        address: contractAddress as `0x${string}`,
+        abi: ICO_ABI,
+        functionName: 'kycRegistry',
+      } as any);
+
+      // Check if user is eligible
+      const isEligible = await publicClient.readContract({
+        address: kycRegistryAddress as `0x${string}`,
+        abi: KYC_REGISTRY_ABI,
+        functionName: 'isEligible',
+        args: [address],
+      } as any);
+
+      return Boolean(isEligible);
+    } catch (error) {
+      console.error('Error checking KYC status:', error);
+      return false;
+    }
+  };
+
+  const checkSaleStatus = async () => {
+    if (!publicClient || !contractAddress) {
+      return { hasStarted: false, hasEnded: false, canInvest: false };
+    }
+
+    try {
+      const [startTime, endTime] = await Promise.all([
+        publicClient.readContract({
+          address: contractAddress as `0x${string}`,
+          abi: ICO_ABI,
+          functionName: 'startTime',
+        } as any),
+        publicClient.readContract({
+          address: contractAddress as `0x${string}`,
+          abi: ICO_ABI,
+          functionName: 'endTime',
+        } as any),
+      ]);
+
+      const now = Math.floor(Date.now() / 1000);
+      const hasStarted = now >= Number(startTime);
+      const hasEnded = now > Number(endTime);
+      const canInvest = hasStarted && !hasEnded;
+
+      return { 
+        hasStarted, 
+        hasEnded, 
+        canInvest,
+        startTime: Number(startTime),
+        endTime: Number(endTime)
+      };
+    } catch (error) {
+      console.error('Error checking sale status:', error);
+      return { hasStarted: false, hasEnded: false, canInvest: false };
+    }
+  };
+
   return {
     invest,
     claimRefund,
     getUserContribution,
     getSaleInfo,
+    checkKYCStatus,
+    checkSaleStatus,
     isConnected,
   };
 };
