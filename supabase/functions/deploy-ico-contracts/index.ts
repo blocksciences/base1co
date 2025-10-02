@@ -206,10 +206,15 @@ serve(async (req) => {
         contractArtifacts.ICOToken.bytecode,
         wallet
       );
+      // Convert supply to include decimals (e.g., 1000000000 with 18 decimals = 1000000000 * 10^18)
+      const totalSupplyWithDecimals = ethers.parseUnits(
+        deploymentData.totalSupply,
+        deploymentData.tokenDecimals
+      );
       const contract = await TokenFactory.deploy(
         deploymentData.projectName,
         deploymentData.tokenSymbol,
-        BigInt(deploymentData.totalSupply),
+        totalSupplyWithDecimals,
         deploymentData.tokenDecimals
       );
       await contract.waitForDeployment();
