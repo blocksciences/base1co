@@ -66,9 +66,23 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
             <span className="font-semibold">{progress.toFixed(1)}%</span>
           </div>
           <Progress value={progress} className="h-2" />
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>{project.raised.toLocaleString()} ETH</span>
-            <span>Goal: {project.goal.toLocaleString()} ETH</span>
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Raised</span>
+              <span className="font-semibold">{project.raised.toFixed(2)} ETH</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Hard Cap</span>
+              <span className="font-semibold">{(project.hardCap || project.goal).toFixed(2)} ETH</span>
+            </div>
+            {(project.minContribution || project.maxContribution) && (
+              <div className="flex items-center justify-between text-xs pt-1 border-t border-border/30">
+                <span className="text-muted-foreground">Per Wallet</span>
+                <span className="font-semibold text-[10px]">
+                  {(project.minContribution || 0.01).toFixed(3)} - {(project.maxContribution || 10).toFixed(2)} ETH
+                </span>
+              </div>
+            )}
           </div>
         </div>
         

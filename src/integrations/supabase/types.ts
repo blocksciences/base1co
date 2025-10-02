@@ -616,15 +616,19 @@ export type Database = {
           description: string | null
           end_date: string
           goal_amount: number
+          hard_cap: number | null
           id: string
           is_paused: boolean | null
           kyc_registry_address: string | null
           liquidity_locker_address: string | null
+          max_contribution: number | null
           max_per_wallet: number | null
+          min_contribution: number | null
           name: string
           participants_count: number | null
           progress_percentage: number | null
           raised_amount: number | null
+          soft_cap: number | null
           start_date: string
           status: string
           symbol: string
@@ -638,15 +642,19 @@ export type Database = {
           description?: string | null
           end_date: string
           goal_amount: number
+          hard_cap?: number | null
           id?: string
           is_paused?: boolean | null
           kyc_registry_address?: string | null
           liquidity_locker_address?: string | null
+          max_contribution?: number | null
           max_per_wallet?: number | null
+          min_contribution?: number | null
           name: string
           participants_count?: number | null
           progress_percentage?: number | null
           raised_amount?: number | null
+          soft_cap?: number | null
           start_date: string
           status?: string
           symbol: string
@@ -660,15 +668,19 @@ export type Database = {
           description?: string | null
           end_date?: string
           goal_amount?: number
+          hard_cap?: number | null
           id?: string
           is_paused?: boolean | null
           kyc_registry_address?: string | null
           liquidity_locker_address?: string | null
+          max_contribution?: number | null
           max_per_wallet?: number | null
+          min_contribution?: number | null
           name?: string
           participants_count?: number | null
           progress_percentage?: number | null
           raised_amount?: number | null
+          soft_cap?: number | null
           start_date?: string
           status?: string
           symbol?: string

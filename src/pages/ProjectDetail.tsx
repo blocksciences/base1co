@@ -18,21 +18,9 @@ import { toast } from 'sonner';
 import { useICOContract } from '@/hooks/useICOContract';
 import { useProjectBlockchainData } from '@/hooks/useProjectBlockchainData';
 import { supabase } from '@/integrations/supabase/client';
-import { z } from 'zod';
 import { KYCModal } from '@/components/KYCModal';
 
-const investmentSchema = z.object({
-  amount: z.string()
-    .refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
-      message: "Amount must be a positive number"
-    })
-    .refine((val) => parseFloat(val) <= 100, {
-      message: "Amount cannot exceed 100 ETH"
-    })
-    .refine((val) => parseFloat(val) >= 0.01, {
-      message: "Minimum investment is 0.01 ETH"
-    })
-});
+// Schema will be validated dynamically with actual contract values
 
 export const ProjectDetail = () => {
   const { id } = useParams();
@@ -76,12 +64,23 @@ export const ProjectDetail = () => {
   }, [isConnected, address, project?.contractAddress]);
   
   const handleInvest = async () => {
-    // Validate input
-    const validation = investmentSchema.safeParse({ amount: investAmount });
+    const amount = parseFloat(investAmount);
     
-    if (!validation.success) {
-      toast.error(validation.error.errors[0].message);
+    if (!investAmount || amount <= 0) {
+      toast.error('Please enter a valid amount');
       return;
+    }
+
+    // Validate against min/max from blockchain
+    if (saleInfo) {
+      if (amount < saleInfo.minContribution) {
+        toast.error(`Minimum contribution is ${saleInfo.minContribution.toFixed(4)} ETH`);
+        return;
+      }
+      if (amount > saleInfo.maxContribution) {
+        toast.error(`Maximum contribution is ${saleInfo.maxContribution.toFixed(2)} ETH`);
+        return;
+      }
     }
 
     if (!isConnected || !address) {
@@ -267,6 +266,32 @@ export const ProjectDetail = () => {
                   <span className="text-2xl font-bold text-primary">{project.price}</span>
                 </div>
                 
+                {/* Sale Limits */}
+                <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-muted/30">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Hard Cap</p>
+                    <p className="text-sm font-semibold">
+                      {blockchainLoading ? <Loader2 className="h-3 w-3 animate-spin inline" /> : `${(saleInfo?.hardCap || goal).toFixed(2)} ETH`}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Soft Cap</p>
+                    <p className="text-sm font-semibold">
+                      {blockchainLoading ? <Loader2 className="h-3 w-3 animate-spin inline" /> : `${(saleInfo?.softCap || goal * 0.5).toFixed(2)} ETH`}
+                    </p>
+                  </div>
+                  <div className="col-span-2 pt-2 border-t border-border/30">
+                    <p className="text-xs text-muted-foreground mb-1">Per Wallet Limits</p>
+                    <p className="text-sm font-semibold">
+                      {blockchainLoading ? (
+                        <Loader2 className="h-3 w-3 animate-spin inline" />
+                      ) : (
+                        `${(saleInfo?.minContribution || 0.01).toFixed(4)} - ${(saleInfo?.maxContribution || 10).toFixed(2)} ETH`
+                      )}
+                    </p>
+                  </div>
+                </div>
+                
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Progress</span>
@@ -352,19 +377,46 @@ export const ProjectDetail = () => {
                   )}
                   
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Investment Amount (ETH)</label>
+                    <label className="text-sm font-medium">
+                      Investment Amount (ETH)
+                      {saleInfo && (
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          Min: {saleInfo.minContribution.toFixed(4)} | Max: {saleInfo.maxContribution.toFixed(2)}
+                        </span>
+                      )}
+                    </label>
                     <Input
                       type="number"
-                      placeholder="0.0"
+                      placeholder={`${saleInfo?.minContribution.toFixed(4) || '0.01'} - ${saleInfo?.maxContribution.toFixed(2) || '10'} ETH`}
                       value={investAmount}
-                      onChange={(e) => setInvestAmount(e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setInvestAmount(value);
+                        
+                        // Real-time validation feedback
+                        if (value && saleInfo) {
+                          const amount = parseFloat(value);
+                          if (amount < saleInfo.minContribution) {
+                            toast.error(`Minimum: ${saleInfo.minContribution.toFixed(4)} ETH`, { duration: 2000 });
+                          } else if (amount > saleInfo.maxContribution) {
+                            toast.error(`Maximum: ${saleInfo.maxContribution.toFixed(2)} ETH`, { duration: 2000 });
+                          }
+                        }
+                      }}
                       className="h-12 text-lg"
-                      step="0.01"
-                      min="0"
+                      step="0.0001"
+                      min={saleInfo?.minContribution || 0.01}
+                      max={saleInfo?.maxContribution || 10}
                       disabled={!isConnected || !isKYCApproved || !saleStatus.canInvest}
                     />
                     <p className="text-xs text-muted-foreground">
-                      You will receive: {investAmount ? (parseFloat(investAmount) / 0.05).toFixed(2) : '0'} {project.symbol}
+                      {investAmount && parseFloat(investAmount) > 0 ? (
+                        <>
+                          You will receive: ~{(parseFloat(investAmount) / parseFloat(project.price.split(' ')[0])).toFixed(2)} {project.symbol}
+                        </>
+                      ) : (
+                        'Enter amount to see token estimate'
+                      )}
                     </p>
                   </div>
                   

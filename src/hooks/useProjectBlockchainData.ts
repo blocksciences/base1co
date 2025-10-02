@@ -7,6 +7,8 @@ export interface BlockchainSaleInfo {
   softCap: number;
   contributorCount: number;
   progressPercentage: number;
+  minContribution: number;
+  maxContribution: number;
 }
 
 export const useProjectBlockchainData = (contractAddress: string | null, refreshInterval: number = 30000) => {

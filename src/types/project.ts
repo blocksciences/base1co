@@ -19,6 +19,8 @@ export interface Project {
   endDate?: Date;
   minContribution?: number;
   maxContribution?: number;
+  softCap?: number;
+  hardCap?: number;
   vestingSchedule?: {
     cliff: number; // in days
     duration: number; // in days

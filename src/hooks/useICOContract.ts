@@ -74,6 +74,20 @@ const ICO_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    inputs: [],
+    name: 'minContribution',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'maxContribution',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 ] as const;
 
 const KYC_REGISTRY_ABI = [
@@ -223,7 +237,7 @@ export const useICOContract = (contractAddress: string) => {
     }
 
     try {
-      const [fundsRaised, hardCap, softCap, contributorCount] = await Promise.all([
+      const [fundsRaised, hardCap, softCap, contributorCount, minContribution, maxContribution] = await Promise.all([
         publicClient.readContract({
           address: contractAddress as `0x${string}`,
           abi: ICO_ABI,
@@ -244,11 +258,23 @@ export const useICOContract = (contractAddress: string) => {
           abi: ICO_ABI,
           functionName: 'getContributorCount',
         } as any),
+        publicClient.readContract({
+          address: contractAddress as `0x${string}`,
+          abi: ICO_ABI,
+          functionName: 'minContribution',
+        } as any),
+        publicClient.readContract({
+          address: contractAddress as `0x${string}`,
+          abi: ICO_ABI,
+          functionName: 'maxContribution',
+        } as any),
       ]);
 
       const raisedEth = parseFloat(formatEther(fundsRaised as bigint));
       const hardCapEth = parseFloat(formatEther(hardCap as bigint));
       const softCapEth = parseFloat(formatEther(softCap as bigint));
+      const minContributionEth = parseFloat(formatEther(minContribution as bigint));
+      const maxContributionEth = parseFloat(formatEther(maxContribution as bigint));
       const progress = hardCapEth > 0 ? (raisedEth / hardCapEth) * 100 : 0;
 
       return {
@@ -257,6 +283,8 @@ export const useICOContract = (contractAddress: string) => {
         softCap: softCapEth,
         contributorCount: Number(contributorCount),
         progressPercentage: Math.min(Math.round(progress), 100),
+        minContribution: minContributionEth,
+        maxContribution: maxContributionEth,
       };
     } catch (error) {
       console.error('Error fetching sale info:', error);
