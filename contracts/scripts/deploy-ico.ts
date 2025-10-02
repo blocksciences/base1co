@@ -6,6 +6,10 @@ async function main() {
   const [deployer] = await ethers.getSigners();
   console.log("Deploying with account:", deployer.address);
   console.log("Account balance:", (await ethers.provider.getBalance(deployer.address)).toString());
+  
+  // Get initial nonce
+  let nonce = await ethers.provider.getTransactionCount(deployer.address, "latest");
+  console.log("Starting nonce:", nonce);
 
   // Get deployment parameters from environment or arguments
   const TOKEN_NAME = process.env.TOKEN_NAME || "ICO Token";
@@ -49,7 +53,7 @@ async function main() {
   // 1. Deploy KYC Registry
   console.log("\n1. Deploying KYCRegistry...");
   const KYCRegistry = await ethers.getContractFactory("KYCRegistry");
-  const kycRegistry = await KYCRegistry.deploy();
+  const kycRegistry = await KYCRegistry.deploy({ nonce: nonce++ });
   await kycRegistry.waitForDeployment();
   const kycAddress = await kycRegistry.getAddress();
   console.log("✅ KYCRegistry deployed to:", kycAddress);
@@ -61,7 +65,8 @@ async function main() {
     TOKEN_NAME,
     TOKEN_SYMBOL,
     INITIAL_SUPPLY_BASE, // Pass base amount
-    TOKEN_DECIMALS
+    TOKEN_DECIMALS,
+    { nonce: nonce++ }
   );
   await token.waitForDeployment();
   const tokenAddress = await token.getAddress();
@@ -84,7 +89,8 @@ async function main() {
     MAX_CONTRIBUTION,
     MAX_PER_WALLET,
     START_TIME,
-    END_TIME
+    END_TIME,
+    { nonce: nonce++ }
   );
   await sale.waitForDeployment();
   const saleAddress = await sale.getAddress();
@@ -93,7 +99,7 @@ async function main() {
   // 4. Deploy Vesting Vault
   console.log("\n4. Deploying VestingVault...");
   const VestingVault = await ethers.getContractFactory("VestingVault");
-  const vestingVault = await VestingVault.deploy(tokenAddress);
+  const vestingVault = await VestingVault.deploy(tokenAddress, { nonce: nonce++ });
   await vestingVault.waitForDeployment();
   const vestingAddress = await vestingVault.getAddress();
   console.log("✅ VestingVault deployed to:", vestingAddress);
@@ -101,7 +107,7 @@ async function main() {
   // 5. Deploy Liquidity Locker
   console.log("\n5. Deploying LiquidityLocker...");
   const LiquidityLocker = await ethers.getContractFactory("LiquidityLocker");
-  const liquidityLocker = await LiquidityLocker.deploy();
+  const liquidityLocker = await LiquidityLocker.deploy({ nonce: nonce++ });
   await liquidityLocker.waitForDeployment();
   const liquidityAddress = await liquidityLocker.getAddress();
   console.log("✅ LiquidityLocker deployed to:", liquidityAddress);
@@ -110,7 +116,7 @@ async function main() {
   console.log("\n6. Transferring tokens to sale contract...");
   const saleAllocation = (INITIAL_SUPPLY * BigInt(40)) / BigInt(100); // 40% for public sale
   
-  const transferTx = await token.transfer(saleAddress, saleAllocation);
+  const transferTx = await token.transfer(saleAddress, saleAllocation, { nonce: nonce++ });
   await transferTx.wait();
   console.log("✅ Transferred", ethers.formatUnits(saleAllocation, TOKEN_DECIMALS), TOKEN_SYMBOL, "to sale contract");
   
@@ -137,7 +143,8 @@ async function main() {
           kycAddress,
           vestingAddress,
           liquidityAddress,
-          deployer.address
+          deployer.address,
+          { nonce: nonce++ }
         );
         const receipt = await registerTx.wait();
         
