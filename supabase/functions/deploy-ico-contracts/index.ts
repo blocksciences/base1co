@@ -365,6 +365,9 @@ serve(async (req) => {
       projectId: project.id,
       saleId,
       message: 'ICO deployed successfully!',
+      network: 'Base Sepolia',
+      deployer: wallet.address,
+      timestamp: new Date().toISOString(),
       deployedAddresses: {
         token: tokenAddress,
         sale: saleAddress,
