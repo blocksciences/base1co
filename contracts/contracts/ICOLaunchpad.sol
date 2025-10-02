@@ -29,6 +29,9 @@ contract ICOLaunchpad is Ownable {
     // Track sales by creator
     mapping(address => uint256[]) public salesByCreator;
     
+    // Track authorized deployers
+    mapping(address => bool) public authorizedDeployers;
+    
     uint256 public nextSaleId;
     uint256 public platformFeePercent = 2; // 2% platform fee
     
@@ -43,8 +46,46 @@ contract ICOLaunchpad is Ownable {
     
     event SaleStatusUpdated(uint256 indexed saleId, bool active);
     event PlatformFeeUpdated(uint256 newFeePercent);
+    event DeployerAuthorized(address indexed deployer);
+    event DeployerRevoked(address indexed deployer);
+    
+    modifier onlyAuthorized() {
+        require(
+            msg.sender == owner() || authorizedDeployers[msg.sender],
+            "Not authorized"
+        );
+        _;
+    }
     
     constructor() Ownable(msg.sender) {}
+    
+    /**
+     * @notice Authorize an address to register sales
+     * @param deployer Address to authorize
+     */
+    function authorizeDeployer(address deployer) external onlyOwner {
+        require(deployer != address(0), "Invalid deployer address");
+        authorizedDeployers[deployer] = true;
+        emit DeployerAuthorized(deployer);
+    }
+    
+    /**
+     * @notice Revoke deployer authorization
+     * @param deployer Address to revoke
+     */
+    function revokeDeployer(address deployer) external onlyOwner {
+        authorizedDeployers[deployer] = false;
+        emit DeployerRevoked(deployer);
+    }
+    
+    /**
+     * @notice Check if an address is authorized
+     * @param deployer Address to check
+     * @return bool True if authorized
+     */
+    function isAuthorizedDeployer(address deployer) external view returns (bool) {
+        return authorizedDeployers[deployer];
+    }
     
     /**
      * @notice Register a deployed ICO sale
@@ -63,7 +104,7 @@ contract ICOLaunchpad is Ownable {
         address vestingVault,
         address liquidityLocker,
         address creator
-    ) external onlyOwner returns (uint256 saleId) {
+    ) external onlyAuthorized returns (uint256 saleId) {
         require(saleContract != address(0), "Invalid sale address");
         require(tokenContract != address(0), "Invalid token address");
         require(kycRegistry != address(0), "Invalid KYC address");
