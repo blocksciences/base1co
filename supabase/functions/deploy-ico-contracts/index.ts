@@ -329,7 +329,7 @@ serve(async (req) => {
         goal_amount: parseFloat(deploymentData.hardCap),
         start_date: deploymentData.startDate,
         end_date: deploymentData.endDate,
-        status: 'active',
+        status: 'live',
         created_by: deploymentData.deployerAddress,
         contract_address: saleAddress,
         kyc_registry_address: kycAddress,
