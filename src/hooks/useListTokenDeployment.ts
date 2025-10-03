@@ -4,10 +4,6 @@ import { toast } from 'sonner';
 import { useAccount } from 'wagmi';
 
 export interface DeployListTokenParams {
-  stakingRewardsAddress?: string;
-  teamAddress?: string;
-  liquidityAddress?: string;
-  ecosystemAddress?: string;
   network?: 'baseSepolia' | 'base';
 }
 
@@ -25,16 +21,11 @@ export const useListTokenDeployment = () => {
     const toastId = toast.loading('Deploying LIST Token and Staking Vault...');
 
     try {
-      // Use connected wallet as default for all allocations
       const deployParams = {
-        stakingRewardsAddress: params.stakingRewardsAddress || address,
-        teamAddress: params.teamAddress || address,
-        liquidityAddress: params.liquidityAddress || address,
-        ecosystemAddress: params.ecosystemAddress || address,
         network: params.network || 'baseSepolia',
       };
 
-      console.log('Deploying with params:', deployParams);
+      console.log('Deploying complete platform suite:', deployParams);
 
       const { data, error } = await supabase.functions.invoke('deploy-list-token', {
         body: deployParams,
@@ -42,7 +33,7 @@ export const useListTokenDeployment = () => {
 
       if (error) throw error;
 
-      toast.success('LIST Token deployed successfully!', { id: toastId });
+      toast.success('Platform suite deployed successfully!', { id: toastId });
       
       console.log('Deployment result:', data);
       

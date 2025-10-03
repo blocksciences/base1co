@@ -11,14 +11,16 @@ async function main() {
     'VestingVault',
     'LiquidityLocker',
     'LISTToken',
-    'PlatformStakingVault'
+    'StakingVault',
+    'TierManager',
+    'FeeDistributor',
+    'GovernanceVault'
   ];
 
   const artifactsPath = path.join(__dirname, '../artifacts/contracts');
   const output: any = {};
 
   for (const contractName of contracts) {
-    // Find the artifact file
     const artifactPath = path.join(artifactsPath, `${contractName}.sol`, `${contractName}.json`);
     
     if (!fs.existsSync(artifactPath)) {
@@ -37,13 +39,25 @@ async function main() {
     console.log(`   Bytecode size: ${(artifact.bytecode.length / 2 / 1024).toFixed(2)} KB`);
   }
 
-  // Write to edge function directory
-  const outputPath = path.join(__dirname, '../../supabase/functions/deploy-ico-contracts/contract-artifacts.json');
-  fs.writeFileSync(outputPath, JSON.stringify(output, null, 2));
+  // Write to deploy-ico-contracts edge function
+  const icoOutputPath = path.join(__dirname, '../../supabase/functions/deploy-ico-contracts/contract-artifacts.json');
+  fs.writeFileSync(icoOutputPath, JSON.stringify(output, null, 2));
+  console.log(`\n✅ ICO contracts saved to: ${icoOutputPath}`);
+
+  // Write to deploy-list-token edge function (only LIST platform contracts)
+  const listPlatformContracts = {
+    LISTToken: output.LISTToken,
+    StakingVault: output.StakingVault,
+    TierManager: output.TierManager,
+    FeeDistributor: output.FeeDistributor,
+    GovernanceVault: output.GovernanceVault
+  };
+
+  const listOutputPath = path.join(__dirname, '../../supabase/functions/deploy-list-token/contract-artifacts.json');
+  fs.writeFileSync(listOutputPath, JSON.stringify(listPlatformContracts, null, 2));
+  console.log(`✅ LIST platform contracts saved to: ${listOutputPath}`);
   
-  console.log(`\n✅ Contract artifacts saved to: ${outputPath}`);
-  console.log('\n🚀 Automated deployment is now enabled!');
-  console.log('You can deploy ICOs directly from your admin dashboard.');
+  console.log('\n🚀 Contract artifacts ready for automated deployment!');
 }
 
 main()

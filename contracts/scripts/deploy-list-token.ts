@@ -3,94 +3,111 @@ import * as fs from "fs";
 import * as path from "path";
 
 async function main() {
-  console.log("🚀 Deploying LIST Token Platform...\n");
+  console.log("🚀 Deploying LIST Token Complete Platform Suite...\n");
 
   const [deployer] = await ethers.getSigners();
   console.log("Deploying contracts with account:", deployer.address);
   console.log("Account balance:", ethers.formatEther(await ethers.provider.getBalance(deployer.address)), "ETH\n");
 
-  // Get allocation addresses from environment or use deployer as fallback
-  const stakingRewardsAddress = process.env.STAKING_REWARDS_ADDRESS || deployer.address;
-  const teamAddress = process.env.TEAM_ADDRESS || deployer.address;
-  const liquidityAddress = process.env.LIQUIDITY_ADDRESS || deployer.address;
-  const ecosystemAddress = process.env.ECOSYSTEM_ADDRESS || deployer.address;
+  const initialOwner = deployer.address;
 
   console.log("📋 Deployment Configuration:");
-  console.log("  Staking Rewards Address:", stakingRewardsAddress);
-  console.log("  Team Address:", teamAddress);
-  console.log("  Liquidity Address:", liquidityAddress);
-  console.log("  Ecosystem Address:", ecosystemAddress);
+  console.log("  Initial Owner:", initialOwner);
   console.log();
 
-  // Deploy LIST Token
+  // 1. Deploy LIST Token
   console.log("1️⃣ Deploying LIST Token...");
   const LISTToken = await ethers.getContractFactory("LISTToken");
-  const listToken = await LISTToken.deploy(
-    stakingRewardsAddress,
-    teamAddress,
-    liquidityAddress,
-    ecosystemAddress
-  );
+  const listToken = await LISTToken.deploy(initialOwner);
   await listToken.waitForDeployment();
   const listTokenAddress = await listToken.getAddress();
   console.log("   ✅ LIST Token deployed to:", listTokenAddress);
-
-  // Verify token details
+  
   const totalSupply = await listToken.totalSupply();
   const symbol = await listToken.symbol();
   const decimals = await listToken.decimals();
-  console.log("   📊 Token Details:");
-  console.log("      Symbol:", symbol);
-  console.log("      Decimals:", decimals);
-  console.log("      Total Supply:", ethers.formatUnits(totalSupply, decimals), symbol);
+  console.log("   📊 Total Supply:", ethers.formatUnits(totalSupply, decimals), symbol);
   console.log();
 
-  // Deploy Staking Vault
-  console.log("2️⃣ Deploying Platform Staking Vault...");
-  const PlatformStakingVault = await ethers.getContractFactory("PlatformStakingVault");
-  const stakingVault = await PlatformStakingVault.deploy(listTokenAddress);
+  // 2. Deploy TierManager
+  console.log("2️⃣ Deploying TierManager...");
+  const TierManager = await ethers.getContractFactory("TierManager");
+  const tierManager = await TierManager.deploy(initialOwner);
+  await tierManager.waitForDeployment();
+  const tierManagerAddress = await tierManager.getAddress();
+  console.log("   ✅ TierManager deployed to:", tierManagerAddress);
+  console.log();
+
+  // 3. Deploy StakingVault
+  console.log("3️⃣ Deploying StakingVault...");
+  const StakingVault = await ethers.getContractFactory("StakingVault");
+  const stakingVault = await StakingVault.deploy(
+    listTokenAddress,
+    tierManagerAddress,
+    initialOwner
+  );
   await stakingVault.waitForDeployment();
   const stakingVaultAddress = await stakingVault.getAddress();
-  console.log("   ✅ Staking Vault deployed to:", stakingVaultAddress);
+  console.log("   ✅ StakingVault deployed to:", stakingVaultAddress);
   console.log();
 
-  // Get allocation amounts
-  const stakingAllocation = await listToken.STAKING_REWARDS_ALLOCATION();
-  console.log("3️⃣ Token Allocations:");
-  console.log("   Staking Rewards:", ethers.formatUnits(stakingAllocation, decimals), symbol);
-  console.log("   ICO Participants:", ethers.formatUnits(await listToken.ICO_PARTICIPANTS_ALLOCATION(), decimals), symbol);
-  console.log("   Team:", ethers.formatUnits(await listToken.TEAM_ALLOCATION(), decimals), symbol);
-  console.log("   Liquidity:", ethers.formatUnits(await listToken.LIQUIDITY_ALLOCATION(), decimals), symbol);
-  console.log("   Ecosystem:", ethers.formatUnits(await listToken.ECOSYSTEM_ALLOCATION(), decimals), symbol);
+  // 4. Deploy FeeDistributor
+  console.log("4️⃣ Deploying FeeDistributor...");
+  const FeeDistributor = await ethers.getContractFactory("FeeDistributor");
+  const feeDistributor = await FeeDistributor.deploy(
+    listTokenAddress,
+    stakingVaultAddress,
+    initialOwner
+  );
+  await feeDistributor.waitForDeployment();
+  const feeDistributorAddress = await feeDistributor.getAddress();
+  console.log("   ✅ FeeDistributor deployed to:", feeDistributorAddress);
   console.log();
 
-  // Fund the staking vault reward pool (if deployer controls staking rewards address)
-  if (stakingRewardsAddress === deployer.address) {
-    console.log("4️⃣ Funding Staking Vault Reward Pool...");
-    const stakingBalance = await listToken.balanceOf(stakingRewardsAddress);
-    console.log("   Staking rewards wallet balance:", ethers.formatUnits(stakingBalance, decimals), symbol);
-    
-    // Approve staking vault to spend tokens
-    console.log("   Approving staking vault...");
-    const approveTx = await listToken.approve(stakingVaultAddress, stakingBalance);
-    await approveTx.wait();
-    console.log("   ✅ Approved");
+  // 5. Deploy GovernanceVault
+  console.log("5️⃣ Deploying GovernanceVault...");
+  const GovernanceVault = await ethers.getContractFactory("GovernanceVault");
+  const governanceVault = await GovernanceVault.deploy(
+    listTokenAddress,
+    tierManagerAddress,
+    stakingVaultAddress,
+    initialOwner
+  );
+  await governanceVault.waitForDeployment();
+  const governanceVaultAddress = await governanceVault.getAddress();
+  console.log("   ✅ GovernanceVault deployed to:", governanceVaultAddress);
+  console.log();
 
-    // Fund the reward pool with all staking allocation
-    console.log("   Transferring to reward pool...");
-    const fundTx = await stakingVault.fundRewardPool(stakingBalance);
-    await fundTx.wait();
-    console.log("   ✅ Reward pool funded with", ethers.formatUnits(stakingBalance, decimals), symbol);
-    
-    const rewardPool = await stakingVault.rewardPool();
-    console.log("   Reward pool balance:", ethers.formatUnits(rewardPool, decimals), symbol);
-    console.log();
-  } else {
-    console.log("4️⃣ ⚠️  Staking reward pool funding skipped (different address)");
-    console.log("   Please manually fund the reward pool by calling:");
-    console.log(`   fundRewardPool(amount) on ${stakingVaultAddress}`);
-    console.log();
-  }
+  // 6. Configure Authorizations
+  console.log("6️⃣ Configuring Contract Authorizations...");
+  
+  await (await listToken.setAuthorizedContract(stakingVaultAddress, true)).wait();
+  console.log("   ✅ StakingVault authorized in LISTToken");
+  
+  await (await listToken.setAuthorizedContract(feeDistributorAddress, true)).wait();
+  console.log("   ✅ FeeDistributor authorized in LISTToken");
+  
+  await (await tierManager.setAuthorizedUpdater(stakingVaultAddress, true)).wait();
+  console.log("   ✅ StakingVault authorized in TierManager");
+  
+  await (await stakingVault.setTierManager(tierManagerAddress)).wait();
+  console.log("   ✅ TierManager set in StakingVault");
+  
+  await (await stakingVault.setFeeDistributor(feeDistributorAddress)).wait();
+  console.log("   ✅ FeeDistributor set in StakingVault");
+  
+  await (await feeDistributor.setAuthorizedFeeSource(feeDistributorAddress, true)).wait();
+  console.log("   ✅ FeeDistributor authorized as fee source");
+  console.log();
+
+  // 7. Fund Reward Pool
+  console.log("7️⃣ Funding Staking Reward Pool...");
+  const rewardAmount = ethers.parseEther("3000000000"); // 3B tokens
+  await (await listToken.approve(stakingVaultAddress, rewardAmount)).wait();
+  await (await stakingVault.fundRewardPool(rewardAmount)).wait();
+  const rewardPool = await stakingVault.rewardPool();
+  console.log("   ✅ Reward pool funded:", ethers.formatUnits(rewardPool, decimals), symbol);
+  console.log();
 
   // Save deployment info
   const deploymentInfo = {
@@ -99,56 +116,29 @@ async function main() {
     deployer: deployer.address,
     timestamp: new Date().toISOString(),
     contracts: {
-      listToken: {
-        address: listTokenAddress,
-        symbol: symbol,
-        decimals: Number(decimals),
-        totalSupply: ethers.formatUnits(totalSupply, decimals),
-      },
-      stakingVault: {
-        address: stakingVaultAddress,
-        rewardPool: ethers.formatUnits(await stakingVault.rewardPool(), decimals),
-      },
-    },
-    allocations: {
-      stakingRewards: stakingRewardsAddress,
-      team: teamAddress,
-      liquidity: liquidityAddress,
-      ecosystem: ecosystemAddress,
+      listToken: listTokenAddress,
+      tierManager: tierManagerAddress,
+      stakingVault: stakingVaultAddress,
+      feeDistributor: feeDistributorAddress,
+      governanceVault: governanceVaultAddress,
     },
   };
 
-  const outputPath = path.join(__dirname, "../deployments/list-token-deployment.json");
+  const outputPath = path.join(__dirname, "../deployments/list-platform-deployment.json");
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, JSON.stringify(deploymentInfo, null, 2));
 
-  console.log("📁 Deployment Information Saved:");
-  console.log("   File:", outputPath);
-  console.log();
-
   console.log("=" .repeat(80));
-  console.log("✨ DEPLOYMENT SUMMARY");
+  console.log("✨ DEPLOYMENT COMPLETE");
   console.log("=" .repeat(80));
   console.log();
-  console.log("LIST Token Address:     ", listTokenAddress);
-  console.log("Staking Vault Address:  ", stakingVaultAddress);
+  console.log("LISTToken:        ", listTokenAddress);
+  console.log("TierManager:      ", tierManagerAddress);
+  console.log("StakingVault:     ", stakingVaultAddress);
+  console.log("FeeDistributor:   ", feeDistributorAddress);
+  console.log("GovernanceVault:  ", governanceVaultAddress);
   console.log();
-  console.log("🔍 Verify contracts on BaseScan:");
-  console.log();
-  console.log("npx hardhat verify --network baseSepolia", listTokenAddress, 
-    stakingRewardsAddress, teamAddress, liquidityAddress, ecosystemAddress);
-  console.log();
-  console.log("npx hardhat verify --network baseSepolia", stakingVaultAddress, listTokenAddress);
-  console.log();
-  console.log("=" .repeat(80));
-  console.log();
-  console.log("⚠️  NEXT STEPS:");
-  console.log("1. Update database with contract addresses");
-  console.log("2. Verify contracts on BaseScan");
-  console.log("3. Update frontend config with addresses");
-  if (stakingRewardsAddress !== deployer.address) {
-    console.log("4. Fund reward pool from staking rewards address");
-  }
+  console.log("📁 Deployment info saved to:", outputPath);
   console.log();
 }
 

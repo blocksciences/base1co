@@ -15,32 +15,17 @@ export default function DeployListToken() {
   const { address } = useAccount();
   const { deployListToken, isDeploying } = useListTokenDeployment();
   
-  const [network, setNetwork] = useState<'baseSepolia' | 'base'>('baseSepolia');
-  const [stakingRewardsAddress, setStakingRewardsAddress] = useState("");
-  const [teamAddress, setTeamAddress] = useState("");
-  const [liquidityAddress, setLiquidityAddress] = useState("");
-  const [ecosystemAddress, setEcosystemAddress] = useState("");
+  const [selectedNetwork, setSelectedNetwork] = useState<'baseSepolia' | 'base'>('baseSepolia');
   const [deploymentResult, setDeploymentResult] = useState<any>(null);
 
   const handleDeploy = async () => {
     const result = await deployListToken({
-      stakingRewardsAddress: stakingRewardsAddress || address,
-      teamAddress: teamAddress || address,
-      liquidityAddress: liquidityAddress || address,
-      ecosystemAddress: ecosystemAddress || address,
-      network,
+      network: selectedNetwork,
     });
     
     if (result) {
       setDeploymentResult(result);
     }
-  };
-
-  const useConnectedWallet = () => {
-    setStakingRewardsAddress(address || "");
-    setTeamAddress(address || "");
-    setLiquidityAddress(address || "");
-    setEcosystemAddress(address || "");
   };
 
   return (
@@ -72,9 +57,8 @@ export default function DeployListToken() {
                 <div className="space-y-2">
                   <p className="font-semibold">Deployment Successful!</p>
                   <div className="text-sm space-y-1">
-                    <p>LIST Token: <code className="bg-muted px-2 py-1 rounded">{deploymentResult.contracts.listToken.address}</code></p>
-                    <p>Staking Vault: <code className="bg-muted px-2 py-1 rounded">{deploymentResult.contracts.stakingVault.address}</code></p>
-                    <p>Reward Pool: {deploymentResult.contracts.stakingVault.rewardPool} LIST {deploymentResult.contracts.stakingVault.funded ? '✅' : '⚠️'}</p>
+                    <p>LIST Token: <code className="bg-muted px-2 py-1 rounded text-xs">{deploymentResult.addresses.listToken}</code></p>
+                    <p>Staking Vault: <code className="bg-muted px-2 py-1 rounded text-xs">{deploymentResult.addresses.stakingVault}</code></p>
                   </div>
                 </div>
               </AlertDescription>
@@ -133,13 +117,13 @@ export default function DeployListToken() {
             <CardHeader>
               <CardTitle>Deployment Configuration</CardTitle>
               <CardDescription>
-                Configure allocation wallet addresses (leave empty to use your connected wallet)
+                Deploy complete platform suite to Base blockchain
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
                 <Label>Network</Label>
-                <Select value={network} onValueChange={(v: any) => setNetwork(v)}>
+                <Select value={selectedNetwork} onValueChange={(v: any) => setSelectedNetwork(v)}>
                   <SelectTrigger className="mt-2">
                     <SelectValue />
                   </SelectTrigger>
@@ -160,79 +144,18 @@ export default function DeployListToken() {
                 </Select>
               </div>
 
-              <div className="flex items-center justify-between">
+              <div>
                 <p className="text-sm text-muted-foreground">
-                  Connected Wallet: <code className="bg-muted px-2 py-1 rounded">{address || 'Not connected'}</code>
+                  Deployer: <code className="bg-muted px-2 py-1 rounded text-xs">{address || 'Connect wallet'}</code>
                 </p>
-                <Button variant="outline" size="sm" onClick={useConnectedWallet} disabled={!address}>
-                  Use for All
-                </Button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="staking">Staking Rewards Address</Label>
-                  <Input
-                    id="staking"
-                    placeholder={address || "0x..."}
-                    value={stakingRewardsAddress}
-                    onChange={(e) => setStakingRewardsAddress(e.target.value)}
-                    className="mt-2"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Will receive 3B LIST tokens for staking rewards pool
-                  </p>
-                </div>
-
-                <div>
-                  <Label htmlFor="team">Team Address (Vested)</Label>
-                  <Input
-                    id="team"
-                    placeholder={address || "0x..."}
-                    value={teamAddress}
-                    onChange={(e) => setTeamAddress(e.target.value)}
-                    className="mt-2"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Will receive 2B LIST tokens for team allocation
-                  </p>
-                </div>
-
-                <div>
-                  <Label htmlFor="liquidity">Liquidity Address</Label>
-                  <Input
-                    id="liquidity"
-                    placeholder={address || "0x..."}
-                    value={liquidityAddress}
-                    onChange={(e) => setLiquidityAddress(e.target.value)}
-                    className="mt-2"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Will receive 1.5B LIST tokens for liquidity provision
-                  </p>
-                </div>
-
-                <div>
-                  <Label htmlFor="ecosystem">Ecosystem Address</Label>
-                  <Input
-                    id="ecosystem"
-                    placeholder={address || "0x..."}
-                    value={ecosystemAddress}
-                    onChange={(e) => setEcosystemAddress(e.target.value)}
-                    className="mt-2"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Will receive 1B LIST tokens for ecosystem development
-                  </p>
-                </div>
               </div>
 
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="text-sm">
-                  <strong>Important:</strong> Make sure you have enough ETH for gas fees. 
-                  The deployer wallet will receive the ICO allocation (2.5B LIST). 
-                  The staking vault reward pool will be automatically funded if the deployer controls the staking rewards address.
+                  <strong>Important:</strong> All contracts will be deployed and configured automatically. 
+                  The deployer wallet will receive ownership of all contracts and initial token supply. 
+                  Ensure you have sufficient ETH for gas fees (~0.01 ETH).
                 </AlertDescription>
               </Alert>
 
@@ -245,10 +168,10 @@ export default function DeployListToken() {
                 {isDeploying ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Deploying Contracts...
+                    Deploying Platform Suite...
                   </>
                 ) : (
-                  'Deploy LIST Token Platform'
+                  'Deploy Complete Platform Suite'
                 )}
               </Button>
             </CardContent>
@@ -283,17 +206,6 @@ export default function DeployListToken() {
                       <p className="text-muted-foreground">Verify users can stake and earn rewards</p>
                     </div>
                   </li>
-                  {!deploymentResult.contracts.stakingVault.funded && (
-                    <li className="flex items-start gap-2">
-                      <AlertCircle className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Fund the staking reward pool</p>
-                        <p className="text-muted-foreground">
-                          Call fundRewardPool() from the staking rewards address
-                        </p>
-                      </div>
-                    </li>
-                  )}
                 </ol>
               </CardContent>
             </Card>
