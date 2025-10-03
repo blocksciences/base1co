@@ -14,7 +14,8 @@ import {
   Clock,
   Lock,
   Building2,
-  Package
+  Package,
+  Coins
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -32,6 +33,7 @@ const navigation = [
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Transactions', href: '/admin/transactions', icon: TrendingUp },
   { name: 'Security', href: '/admin/security', icon: Shield },
+  { name: 'Deploy LIST Token', href: '/admin/deploy-list-token', icon: Coins },
   { name: 'Admin Management', href: '/admin/manage-admins', icon: Users },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];

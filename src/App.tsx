@@ -30,6 +30,7 @@ import LiquidityLocks from "./pages/admin/LiquidityLocks";
 import EntityKYC from "./pages/admin/EntityKYC";
 import DistributionJobs from "./pages/admin/DistributionJobs";
 import QuickKYCApproval from "./pages/admin/QuickKYCApproval";
+import DeployListToken from "./pages/admin/DeployListToken";
 import ProjectTransparency from "./pages/ProjectTransparency";
 import NotFound from "./pages/NotFound";
 import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
@@ -77,6 +78,7 @@ const App = () => (
               <Route path="/admin/quick-kyc" element={<AdminProtectedRoute><QuickKYCApproval /></AdminProtectedRoute>} />
               <Route path="/admin/manage-admins" element={<AdminProtectedRoute><AdminManagement /></AdminProtectedRoute>} />
               <Route path="/admin/settings" element={<AdminProtectedRoute><AdminSettings /></AdminProtectedRoute>} />
+              <Route path="/admin/deploy-list-token" element={<AdminProtectedRoute><DeployListToken /></AdminProtectedRoute>} />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
