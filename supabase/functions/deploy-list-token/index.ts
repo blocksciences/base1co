@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { ethers } from "https://esm.sh/ethers@6.9.0";
-import contractArtifacts from "./contract-artifacts.json" assert { type: "json" };
+import contractArtifacts from "./contract-artifacts.json" with { type: "json" };
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -121,29 +121,34 @@ serve(async (req) => {
     // 6. Configure contracts
     console.log('6. Configuring contracts...');
     
-    await (await listToken.setAuthorizedContract(addresses.stakingVault, true)).wait();
+    const listTokenContract = listToken as any;
+    const tierManagerContract = tierManager as any;
+    const stakingVaultContract = stakingVault as any;
+    const feeDistributorContract = feeDistributor as any;
+    
+    await (await listTokenContract.setAuthorizedContract(addresses.stakingVault, true)).wait();
     console.log('  Authorized StakingVault in LISTToken');
     
-    await (await listToken.setAuthorizedContract(addresses.feeDistributor, true)).wait();
+    await (await listTokenContract.setAuthorizedContract(addresses.feeDistributor, true)).wait();
     console.log('  Authorized FeeDistributor in LISTToken');
     
-    await (await tierManager.setAuthorizedUpdater(addresses.stakingVault, true)).wait();
+    await (await tierManagerContract.setAuthorizedUpdater(addresses.stakingVault, true)).wait();
     console.log('  Authorized StakingVault in TierManager');
     
-    await (await stakingVault.setTierManager(addresses.tierManager)).wait();
+    await (await stakingVaultContract.setTierManager(addresses.tierManager)).wait();
     console.log('  Set TierManager in StakingVault');
     
-    await (await stakingVault.setFeeDistributor(addresses.feeDistributor)).wait();
+    await (await stakingVaultContract.setFeeDistributor(addresses.feeDistributor)).wait();
     console.log('  Set FeeDistributor in StakingVault');
     
-    await (await feeDistributor.setAuthorizedFeeSource(addresses.feeDistributor, true)).wait();
+    await (await feeDistributorContract.setAuthorizedFeeSource(addresses.feeDistributor, true)).wait();
     console.log('  Authorized FeeDistributor');
 
     // 7. Fund reward pool
     console.log('7. Funding reward pool...');
     const rewardAmount = ethers.parseEther('3000000000');
-    await (await listToken.approve(addresses.stakingVault, rewardAmount)).wait();
-    await (await stakingVault.fundRewardPool(rewardAmount)).wait();
+    await (await listTokenContract.approve(addresses.stakingVault, rewardAmount)).wait();
+    await (await stakingVaultContract.fundRewardPool(rewardAmount)).wait();
     console.log('✅ Funded with 3B LIST tokens');
 
     // Update database
