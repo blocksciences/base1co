@@ -8,14 +8,15 @@ export const calculateProjectStatus = (
   raisedAmount: number,
   softCap: number | null
 ): string => {
-  const now = new Date();
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-
   // If project is pending or rejected, keep that status
   if (databaseStatus === 'pending' || databaseStatus === 'rejected' || databaseStatus === 'paused') {
     return databaseStatus;
   }
+
+  // Parse dates as local dates (not UTC)
+  const now = new Date();
+  const start = new Date(startDate + 'T00:00:00');
+  const end = new Date(endDate + 'T23:59:59');
 
   // Check if ICO hasn't started yet
   if (now < start) {
@@ -23,12 +24,12 @@ export const calculateProjectStatus = (
   }
 
   // Check if ICO is currently active
-  if (now >= start && now < end) {
+  if (now >= start && now <= end) {
     return 'live';
   }
 
   // ICO has ended - check if it was successful
-  if (now >= end) {
+  if (now > end) {
     const soft = softCap || 0;
     return raisedAmount >= soft ? 'success' : 'failed';
   }
