@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ProjectCard } from '@/components/ProjectCard';
 import { useProjects } from '@/hooks/useProjects';
 import { Link } from 'react-router-dom';
-import { Rocket, Shield, Zap, TrendingUp, ArrowRight, Loader2, Users, Lock, Globe, Star, CheckCircle } from 'lucide-react';
+import { Rocket, Shield, Zap, TrendingUp, ArrowRight, Loader2 } from 'lucide-react';
 
 const Index = () => {
   const { data: projects, isLoading } = useProjects();
@@ -13,139 +12,58 @@ const Index = () => {
   const upcomingProjects = projects?.filter(p => p.status === 'upcoming').slice(0, 3);
   const completedProjects = projects?.filter(p => p.status === 'success').slice(0, 3);
   
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const features = [
-    {
-      icon: <Shield className="w-8 h-8" />,
-      title: 'Audited Smart Contracts',
-      description: 'Professionally audited by leading security firms for maximum safety',
-    },
-    {
-      icon: <Lock className="w-8 h-8" />,
-      title: 'Secure Staking',
-      description: 'Earn rewards by staking your tokens in our flexible pools',
-    },
-    {
-      icon: <Users className="w-8 h-8" />,
-      title: 'Referral Rewards',
-      description: 'Earn commission by referring friends to the platform',
-    },
-    {
-      icon: <Globe className="w-8 h-8" />,
-      title: 'Base Network',
-      description: 'Built on Base for fast transactions and minimal fees',
-    },
-  ];
-  
   return (
     <div className="min-h-screen">
-      {/* Animated Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute w-96 h-96 bg-primary/20 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob top-0 -left-4"></div>
-        <div className="absolute w-96 h-96 bg-secondary/20 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000 top-0 -right-4"></div>
-        <div className="absolute w-96 h-96 bg-accent/20 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000 bottom-0 left-20"></div>
-      </div>
-
       <Header />
       
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 px-6">
-        <div className="container mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8">
-              <div className="inline-flex items-center space-x-2 bg-primary/10 border border-primary/30 rounded-full px-4 py-2">
-                <Star className="w-4 h-4 text-primary" />
-                <span className="text-sm text-primary">Secure & Transparent</span>
-              </div>
-              
+      <section className="relative py-20 md:py-32 overflow-hidden">
+        <div className="absolute inset-0 grid-background opacity-40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
+        
+        <div className="container relative px-4">
+          <div className="max-w-4xl mx-auto text-center space-y-8">
+            <div className="space-y-4">
               <h1 className="text-5xl md:text-7xl font-bold leading-tight">
-                Invest in the
-                <span className="bg-gradient-primary bg-clip-text text-transparent"> Future of DeFi</span>
+                Launch Your Project on{' '}
+                <span className="bg-gradient-primary bg-clip-text text-transparent">
+                  Base
+                </span>
               </h1>
-              
-              <p className="text-xl text-muted-foreground">
-                Join thousands of investors in the most secure and transparent token sales. Earn passive income through staking and referrals.
+              <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
+                The premier ICO launchpad for next-generation blockchain projects. 
+                Secure, transparent, and community-driven.
               </p>
-
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link to="/projects">
-                  <Button size="lg" className="group h-14 px-8 text-lg bg-gradient-primary hover:opacity-90">
-                    Explore Projects
-                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </Link>
-                <Link to="/dashboard">
-                  <Button size="lg" variant="outline" className="h-14 px-8 text-lg">
-                    View Dashboard
-                  </Button>
-                </Link>
-              </div>
             </div>
-
-            {/* Hero Stats Card */}
-            <div className="relative">
-              <Card className="glass p-8 border-border shadow-2xl">
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="glass rounded-xl p-4 border border-border/50">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-muted-foreground text-sm">Total Raised</span>
-                        <TrendingUp className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="text-2xl font-bold">$50M+</div>
-                    </div>
-                    <div className="glass rounded-xl p-4 border border-border/50">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-muted-foreground text-sm">Investors</span>
-                        <Users className="w-5 h-5 text-secondary" />
-                      </div>
-                      <div className="text-2xl font-bold">25K+</div>
-                    </div>
-                    <div className="glass rounded-xl p-4 border border-border/50">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-muted-foreground text-sm">Projects</span>
-                        <Rocket className="w-5 h-5 text-success" />
-                      </div>
-                      <div className="text-2xl font-bold">15+</div>
-                    </div>
-                    <div className="glass rounded-xl p-4 border border-border/50">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-muted-foreground text-sm">Network</span>
-                        <Zap className="w-5 h-5 text-accent" />
-                      </div>
-                      <div className="text-2xl font-bold">Base</div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2 text-sm">
-                      <CheckCircle className="w-5 h-5 text-success" />
-                      <span>Smart contracts audited by leading firms</span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-sm">
-                      <CheckCircle className="w-5 h-5 text-success" />
-                      <span>KYC verified and compliant</span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-sm">
-                      <CheckCircle className="w-5 h-5 text-success" />
-                      <span>Built on Base for speed and low fees</span>
-                    </div>
-                  </div>
-
-                  <Link to="/projects" className="block">
-                    <Button className="w-full h-12 bg-gradient-primary hover:opacity-90">
-                      Start Investing Now
-                    </Button>
-                  </Link>
-                </div>
-              </Card>
+            
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link to="/projects">
+                <Button size="lg" className="h-14 px-8 text-lg bg-gradient-primary hover:opacity-90 gap-2">
+                  Explore Projects
+                  <ArrowRight className="h-5 w-5" />
+                </Button>
+              </Link>
+              <Link to="/dashboard">
+                <Button size="lg" variant="outline" className="h-14 px-8 text-lg">
+                  View Dashboard
+                </Button>
+              </Link>
+            </div>
+            
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-8 pt-12 max-w-3xl mx-auto">
+              <div className="space-y-2">
+                <p className="text-3xl md:text-4xl font-bold text-primary">$50M+</p>
+                <p className="text-sm text-muted-foreground">Total Raised</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-3xl md:text-4xl font-bold text-secondary">25K+</p>
+                <p className="text-sm text-muted-foreground">Investors</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-3xl md:text-4xl font-bold text-success">15+</p>
+                <p className="text-sm text-muted-foreground">Projects Launched</p>
+              </div>
             </div>
           </div>
         </div>
@@ -234,29 +152,41 @@ const Index = () => {
         </section>
       )}
 
-      {/* Features Section */}
-      <section className="py-20 px-6 relative">
-        <div className="container mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Why Choose <span className="bg-gradient-primary bg-clip-text text-transparent">LaunchBase</span>
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Built with security, transparency, and investor success in mind
+      {/* Features */}
+      <section className="container px-4 py-20 border-t border-border/50">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <Card className="glass p-8 space-y-4 hover:shadow-glow-cyan transition-shadow">
+            <div className="h-14 w-14 rounded-2xl bg-primary/20 flex items-center justify-center">
+              <Shield className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="text-2xl font-bold">Secure & Audited</h3>
+            <p className="text-muted-foreground">
+              All smart contracts are audited by leading security firms. 
+              Your funds are protected by battle-tested code.
             </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, idx) => (
-              <Card key={idx} className="group glass p-6 border-border hover:border-primary/50 transition-all hover:shadow-lg hover:-translate-y-2">
-                <div className="w-16 h-16 rounded-xl bg-gradient-primary/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-primary">
-                  {feature.icon}
-                </div>
-                <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.description}</p>
-              </Card>
-            ))}
-          </div>
+          </Card>
+          
+          <Card className="glass p-8 space-y-4 hover:shadow-glow-purple transition-shadow">
+            <div className="h-14 w-14 rounded-2xl bg-secondary/20 flex items-center justify-center">
+              <Zap className="h-8 w-8 text-secondary" />
+            </div>
+            <h3 className="text-2xl font-bold">Fast & Low Cost</h3>
+            <p className="text-muted-foreground">
+              Built on Base for lightning-fast transactions with minimal fees. 
+              No more expensive gas wars.
+            </p>
+          </Card>
+          
+          <Card className="glass p-8 space-y-4 hover:shadow-glow-cyan transition-shadow">
+            <div className="h-14 w-14 rounded-2xl bg-success/20 flex items-center justify-center">
+              <TrendingUp className="h-8 w-8 text-success" />
+            </div>
+            <h3 className="text-2xl font-bold">Vetted Projects</h3>
+            <p className="text-muted-foreground">
+              Every project undergoes rigorous due diligence. 
+              Only the best make it to our platform.
+            </p>
+          </Card>
         </div>
       </section>
       
