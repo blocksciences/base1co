@@ -11,15 +11,25 @@ import {
 import { useAccount } from 'wagmi';
 import { useUserInvestments, useUserTransactions, useUserKYC } from '@/hooks/useUserData';
 import { KYCModal } from '@/components/KYCModal';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useWalletAdminStatus } from '@/hooks/useWalletAdminStatus';
 
 export const Dashboard = () => {
+  const navigate = useNavigate();
   const { isConnected, address } = useAccount();
+  const { isAdmin } = useWalletAdminStatus(address);
   const { investments, loading: investmentsLoading } = useUserInvestments();
   const { transactions, loading: transactionsLoading } = useUserTransactions();
   const { kycStatus, refetch: refetchKYC } = useUserKYC();
   const [kycModalOpen, setKycModalOpen] = useState(false);
+
+  // Redirect admins to admin dashboard
+  useEffect(() => {
+    if (isConnected && isAdmin) {
+      navigate('/admin');
+    }
+  }, [isConnected, isAdmin, navigate]);
   
   if (!isConnected) {
     return (
