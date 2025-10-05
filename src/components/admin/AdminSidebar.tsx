@@ -15,7 +15,8 @@ import {
   Lock,
   Building2,
   Package,
-  Coins
+  Coins,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +27,7 @@ const navigation = [
   { name: 'Applications', href: '/admin/applications', icon: ClipboardList },
   { name: 'Users', href: '/admin/users', icon: Users },
   { name: 'KYC Approvals', href: '/admin/kyc', icon: CheckCircle2 },
+  { name: 'AI KYC Demo', href: '/admin/ai-kyc-demo', icon: Sparkles },
   { name: 'Entity KYC', href: '/admin/entity-kyc', icon: Building2 },
   { name: 'Vesting', href: '/admin/vesting', icon: Clock },
   { name: 'Liquidity Locks', href: '/admin/liquidity-locks', icon: Lock },

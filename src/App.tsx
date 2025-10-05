@@ -47,6 +47,7 @@ const EntityKYC = lazy(() => import("./pages/admin/EntityKYC"));
 const DistributionJobs = lazy(() => import("./pages/admin/DistributionJobs"));
 const QuickKYCApproval = lazy(() => import("./pages/admin/QuickKYCApproval"));
 const DeployListToken = lazy(() => import("./pages/admin/DeployListToken"));
+const AIKYCDemo = lazy(() => import("./pages/admin/AIKYCDemo"));
 
 const queryClient = new QueryClient();
 
@@ -200,6 +201,13 @@ const AppContent = () => {
             <AdminProtectedRoute>
               <Suspense fallback={<AdminLoadingSkeleton />}>
                 <DeployListToken />
+              </Suspense>
+            </AdminProtectedRoute>
+          } />
+          <Route path="/admin/ai-kyc-demo" element={
+            <AdminProtectedRoute>
+              <Suspense fallback={<AdminLoadingSkeleton />}>
+                <AIKYCDemo />
               </Suspense>
             </AdminProtectedRoute>
           } />
