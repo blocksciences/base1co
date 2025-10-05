@@ -116,4 +116,40 @@ All colors MUST be HSL.
   .cyber-border {
     animation: border-flow 3s ease-in-out infinite;
   }
+
+  /* Mobile-specific optimizations */
+  body.mobile-native {
+    /* Disable text selection for better UX */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    
+    /* Prevent overscroll bounce */
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body.platform-ios {
+    /* iOS-specific safe areas */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  body.platform-android {
+    /* Android-specific optimizations */
+    touch-action: manipulation;
+  }
+
+  /* Touch-optimized buttons for mobile */
+  .mobile-native button,
+  .mobile-native a[role="button"] {
+    min-height: 44px; /* iOS minimum touch target */
+    min-width: 44px;
+  }
+
+  /* Optimize inputs for mobile */
+  .mobile-native input,
+  .mobile-native textarea {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
 }

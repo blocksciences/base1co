@@ -15,6 +15,7 @@ import { AdminLoadingSkeleton } from "./components/AdminLoadingSkeleton";
 import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
 import { ErrorTracker } from "./components/ErrorTracker";
 import { SEO } from "./components/SEO";
+import { MobileOptimized } from "./components/MobileOptimized";
 
 // Eagerly loaded routes (public pages)
 import Index from "./pages/Index";
@@ -232,7 +233,9 @@ const App = () => (
           })}
         >
           <TooltipProvider>
-            <AppContent />
+            <MobileOptimized>
+              <AppContent />
+            </MobileOptimized>
           </TooltipProvider>
         </RainbowKitProvider>
       </QueryClientProvider>
