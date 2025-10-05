@@ -31,8 +31,9 @@ export const ProjectRowWithBlockchain = ({
   );
 
   // Use blockchain data if available, otherwise fall back to database
-  const raised = saleInfo?.fundsRaised ?? (Number(project.raised_amount || 0) / 1e18);
-  const goal = saleInfo?.hardCap ?? (Number(project.goal_amount || 1) / 1e18);
+  // Note: Database stores values in ETH already, not wei
+  const raised = saleInfo?.fundsRaised ?? Number(project.raised_amount || 0);
+  const goal = saleInfo?.hardCap ?? Number(project.goal_amount || 1);
   const progress = saleInfo?.progressPercentage ?? project.progress_percentage ?? 0;
   const participants = saleInfo?.contributorCount ?? project.participants_count ?? 0;
 
@@ -42,7 +43,7 @@ export const ProjectRowWithBlockchain = ({
     project.start_date,
     project.end_date,
     raised,
-    project.soft_cap ? Number(project.soft_cap) / 1e18 : null
+    project.soft_cap ? Number(project.soft_cap) : null
   );
   const statusLabel = getStatusLabel(actualStatus);
 
