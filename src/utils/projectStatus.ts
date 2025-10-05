@@ -9,32 +9,47 @@ export const calculateProjectStatus = (
   softCap: number | null
 ): string => {
   // If project is pending or rejected, keep that status
-  if (databaseStatus === 'pending' || databaseStatus === 'rejected' || databaseStatus === 'paused') {
+  if (databaseStatus === 'pending' || databaseStatus === 'rejected') {
     return databaseStatus;
   }
 
-  const now = new Date();
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-
-  // Check if ICO hasn't started yet
-  if (now < start) {
-    return 'upcoming';
+  // If project is paused, keep that status
+  if (databaseStatus === 'paused') {
+    return 'paused';
   }
 
-  // Check if ICO is currently active
-  if (now >= start && now <= end) {
-    return 'live';
-  }
+  try {
+    const now = new Date();
+    const start = new Date(startDate);
+    const end = new Date(endDate);
 
-  // ICO has ended - check if it was successful
-  if (now > end) {
-    const soft = softCap || 0;
-    return raisedAmount >= soft ? 'success' : 'failed';
-  }
+    // Validate dates
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      console.error('Invalid dates:', { startDate, endDate });
+      return databaseStatus;
+    }
 
-  // Fallback to database status
-  return databaseStatus;
+    // Check if ICO hasn't started yet
+    if (now < start) {
+      return 'upcoming';
+    }
+
+    // Check if ICO is currently active
+    if (now >= start && now <= end) {
+      return 'live';
+    }
+
+    // ICO has ended - check if it was successful
+    if (now > end) {
+      const soft = softCap || 0;
+      return raisedAmount >= soft ? 'success' : 'failed';
+    }
+
+    return databaseStatus;
+  } catch (error) {
+    console.error('Error calculating project status:', error);
+    return databaseStatus;
+  }
 };
 
 /**

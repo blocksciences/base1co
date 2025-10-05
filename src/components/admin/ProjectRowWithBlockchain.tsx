@@ -42,9 +42,26 @@ export const ProjectRowWithBlockchain = ({
     project.start_date,
     project.end_date,
     raised,
-    project.soft_cap
+    project.soft_cap ? Number(project.soft_cap) / 1e18 : null
   );
   const statusLabel = getStatusLabel(actualStatus);
+
+  // Format dates properly
+  const formatDate = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (e) {
+      return 'Invalid Date';
+    }
+  };
 
   return (
     <tr className="border-b border-border/30 hover:bg-muted/20 transition-colors">
@@ -110,8 +127,8 @@ export const ProjectRowWithBlockchain = ({
       </td>
       <td className="p-4">
         <div className="text-sm">
-          <p className="text-muted-foreground">{new Date(project.start_date).toLocaleString()}</p>
-          <p className="text-muted-foreground">{new Date(project.end_date).toLocaleString()}</p>
+          <p className="text-muted-foreground">Start: {formatDate(project.start_date)}</p>
+          <p className="text-muted-foreground">End: {formatDate(project.end_date)}</p>
         </div>
       </td>
       <td className="p-4">
