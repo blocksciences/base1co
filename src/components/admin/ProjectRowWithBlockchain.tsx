@@ -2,6 +2,7 @@ import { useProjectBlockchainData } from '@/hooks/useProjectBlockchainData';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2, Eye, Play, Pause, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { calculateProjectStatus, getStatusLabel } from '@/utils/projectStatus';
 
 interface ProjectRowProps {
   project: any;
@@ -35,6 +36,16 @@ export const ProjectRowWithBlockchain = ({
   const progress = saleInfo?.progressPercentage ?? project.progress_percentage ?? 0;
   const participants = saleInfo?.contributorCount ?? project.participants_count ?? 0;
 
+  // Calculate actual status based on dates
+  const actualStatus = calculateProjectStatus(
+    project.status,
+    project.start_date,
+    project.end_date,
+    raised,
+    project.soft_cap
+  );
+  const statusLabel = getStatusLabel(actualStatus);
+
   return (
     <tr className="border-b border-border/30 hover:bg-muted/20 transition-colors">
       <td className="p-4">
@@ -45,15 +56,16 @@ export const ProjectRowWithBlockchain = ({
       </td>
       <td className="p-4">
         <Badge className={
-          project.status === 'live' ? 'bg-success' :
-          project.status === 'pending' ? 'bg-secondary' :
-          project.status === 'upcoming' ? 'bg-primary' :
-          project.status === 'success' ? 'bg-success' :
-          project.status === 'failed' ? 'bg-destructive' :
-          project.status === 'ended' ? 'bg-muted' :
+          actualStatus === 'live' ? 'bg-success' :
+          actualStatus === 'pending' ? 'bg-secondary' :
+          actualStatus === 'upcoming' ? 'bg-primary' :
+          actualStatus === 'success' ? 'bg-success' :
+          actualStatus === 'failed' ? 'bg-destructive' :
+          actualStatus === 'paused' ? 'bg-secondary' :
+          actualStatus === 'ended' ? 'bg-muted' :
           'bg-destructive'
         }>
-          {project.status}
+          {statusLabel}
         </Badge>
       </td>
       <td className="p-4">
@@ -104,7 +116,7 @@ export const ProjectRowWithBlockchain = ({
       </td>
       <td className="p-4">
         <div className="flex items-center justify-end gap-2">
-          {project.status === 'pending' && (
+          {actualStatus === 'pending' && (
             <>
               <Button 
                 size="sm" 
@@ -125,7 +137,7 @@ export const ProjectRowWithBlockchain = ({
               </Button>
             </>
           )}
-          {project.status === 'live' && (
+          {actualStatus === 'live' && (
             <Button 
               size="sm" 
               variant="outline"
@@ -135,7 +147,7 @@ export const ProjectRowWithBlockchain = ({
               Pause
             </Button>
           )}
-          {project.status === 'paused' && (
+          {actualStatus === 'paused' && (
             <Button 
               size="sm" 
               variant="default"
