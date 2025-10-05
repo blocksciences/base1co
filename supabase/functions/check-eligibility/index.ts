@@ -41,10 +41,10 @@ serve(async (req) => {
     // Perform basic sanctions screening (in production, integrate with actual screening API)
     const sanctionsCheck = !geoBlocked; // Simplified for now
 
-    // Store eligibility check
+    // Store or update eligibility check
     const { data: eligibilityData, error: eligibilityError } = await supabase
       .from('eligibility_checks')
-      .insert({
+      .upsert({
         wallet_address: walletAddress.toLowerCase(),
         kyc_approved: kycApproved,
         geo_blocked: geoBlocked || false,
@@ -52,6 +52,8 @@ serve(async (req) => {
         ip_address: ipAddress,
         country_code: kycData?.country || null,
         last_checked_at: new Date().toISOString(),
+      }, {
+        onConflict: 'wallet_address'
       })
       .select()
       .single();

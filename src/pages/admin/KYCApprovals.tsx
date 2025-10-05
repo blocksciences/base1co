@@ -3,12 +3,14 @@ import { AdminHeader } from '@/components/admin/AdminHeader';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, XCircle, Eye, AlertCircle, Loader2 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CheckCircle2, XCircle, Eye, AlertCircle, Loader2, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { KYCDetailsModal } from '@/components/admin/KYCDetailsModal';
 import { useKYCSubmissions, type KYCSubmission } from '@/hooks/useAdminData';
 import { supabase } from '@/integrations/supabase/client';
+import { Link } from 'react-router-dom';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -74,8 +76,25 @@ export const KYCApprovals = () => {
 
       if (profileError) throw profileError;
 
+      // Update eligibility checks
+      const { error: eligibilityError } = await supabase
+        .from('eligibility_checks')
+        .upsert({
+          wallet_address: kyc.wallet_address.toLowerCase(),
+          kyc_approved: true,
+          geo_blocked: false,
+          sanctions_check: true,
+          country_code: kyc.country,
+          last_checked_at: new Date().toISOString()
+        }, {
+          onConflict: 'wallet_address'
+        });
+
+      if (eligibilityError) throw eligibilityError;
+
       await refetch();
-      toast.success(`KYC approved for ${kyc.wallet_address.slice(0, 6)}...${kyc.wallet_address.slice(-4)}`);
+      toast.success(`Database KYC approved for ${kyc.wallet_address.slice(0, 6)}...${kyc.wallet_address.slice(-4)}`);
+      toast.warning('Important: Also approve on-chain via Quick KYC Approval page', { duration: 5000 });
     } catch (error: any) {
       toast.error('Failed to approve KYC');
       console.error(error);
@@ -144,6 +163,18 @@ export const KYCApprovals = () => {
             <h1 className="text-3xl font-bold mb-2">KYC Approvals</h1>
             <p className="text-muted-foreground">Review and approve user verification requests</p>
           </div>
+
+          {/* Important Notice */}
+          <Alert className="border-orange-500/50 bg-orange-500/10">
+            <Info className="h-4 w-4 text-orange-500" />
+            <AlertDescription className="text-sm">
+              <strong className="text-orange-600">Two-Step Approval Required:</strong> After approving KYC here, you must also approve on-chain via the{' '}
+              <Link to="/admin/quick-kyc-approval" className="underline font-semibold hover:text-orange-700">
+                Quick KYC Approval
+              </Link>{' '}
+              page. Otherwise, users won't be able to invest.
+            </AlertDescription>
+          </Alert>
           
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
