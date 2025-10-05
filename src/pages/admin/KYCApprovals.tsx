@@ -52,7 +52,7 @@ export const KYCApprovals = () => {
       const kyc = kycSubmissions.find(k => k.id === id);
       if (!kyc) return;
 
-      // Update KYC submission
+      // Step 1: Update database (off-chain)
       const { error: kycError } = await supabase
         .from('kyc_submissions')
         .update({ 
@@ -63,7 +63,6 @@ export const KYCApprovals = () => {
 
       if (kycError) throw kycError;
 
-      // Update or create profile
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
@@ -76,7 +75,6 @@ export const KYCApprovals = () => {
 
       if (profileError) throw profileError;
 
-      // Update eligibility checks
       const { error: eligibilityError } = await supabase
         .from('eligibility_checks')
         .upsert({
@@ -92,11 +90,43 @@ export const KYCApprovals = () => {
 
       if (eligibilityError) throw eligibilityError;
 
-      await refetch();
       toast.success(`Database KYC approved for ${kyc.wallet_address.slice(0, 6)}...${kyc.wallet_address.slice(-4)}`);
-      toast.warning('Important: Also approve on-chain via Quick KYC Approval page', { duration: 5000 });
+
+      // Step 2: Get KYC Registry address from project
+      const { data: projects } = await supabase
+        .from('projects')
+        .select('kyc_registry_address')
+        .not('kyc_registry_address', 'is', null)
+        .limit(1)
+        .single();
+
+      if (!projects?.kyc_registry_address) {
+        toast.warning('No KYC Registry found. Database approval only.');
+        await refetch();
+        return;
+      }
+
+      // Step 3: Approve on-chain
+      toast.loading('Approving on-chain...', { id: 'onchain-approval' });
+      
+      const { data: onchainResult, error: onchainError } = await supabase.functions.invoke('approve-kyc-onchain', {
+        body: {
+          walletAddress: kyc.wallet_address,
+          kycRegistryAddress: projects.kyc_registry_address
+        }
+      });
+
+      if (onchainError || !onchainResult?.success) {
+        toast.error('On-chain approval failed: ' + (onchainResult?.error || onchainError?.message), { id: 'onchain-approval' });
+        toast.warning('User is approved in database but NOT on-chain. Use Quick KYC page.', { duration: 7000 });
+      } else {
+        toast.success(`On-chain approval successful! Tx: ${onchainResult.txHash.slice(0, 10)}...`, { id: 'onchain-approval' });
+        toast.success(`✅ KYC fully approved (database + on-chain)`, { duration: 5000 });
+      }
+
+      await refetch();
     } catch (error: any) {
-      toast.error('Failed to approve KYC');
+      toast.error('Failed to approve KYC: ' + error.message);
       console.error(error);
     } finally {
       setProcessing(false);
@@ -165,14 +195,14 @@ export const KYCApprovals = () => {
           </div>
 
           {/* Important Notice */}
-          <Alert className="border-orange-500/50 bg-orange-500/10">
-            <Info className="h-4 w-4 text-orange-500" />
+          <Alert className="border-blue-500/50 bg-blue-500/10">
+            <Info className="h-4 w-4 text-blue-500" />
             <AlertDescription className="text-sm">
-              <strong className="text-orange-600">Two-Step Approval Required:</strong> After approving KYC here, you must also approve on-chain via the{' '}
-              <Link to="/admin/quick-kyc" className="underline font-semibold hover:text-orange-700">
+              <strong className="text-blue-600">Automatic Approval:</strong> When you approve KYC here, the system will automatically approve both in the database and on-chain. If on-chain approval fails, you can use the{' '}
+              <Link to="/admin/quick-kyc" className="underline font-semibold hover:text-blue-700">
                 Quick KYC Approval
               </Link>{' '}
-              page. Otherwise, users won't be able to invest.
+              page as a backup.
             </AlertDescription>
           </Alert>
           
