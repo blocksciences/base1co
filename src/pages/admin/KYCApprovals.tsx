@@ -4,13 +4,14 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle2, XCircle, Eye, AlertCircle, Loader2, Info } from 'lucide-react';
+import { CheckCircle2, XCircle, Eye, AlertCircle, Loader2, Info, Trash2, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { KYCDetailsModal } from '@/components/admin/KYCDetailsModal';
 import { useKYCSubmissions, type KYCSubmission } from '@/hooks/useAdminData';
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +29,8 @@ export const KYCApprovals = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [kycToProcess, setKycToProcess] = useState<KYCSubmission | null>(null);
   const [processing, setProcessing] = useState(false);
 
@@ -44,6 +47,16 @@ export const KYCApprovals = () => {
   const handleRejectClick = (kyc: KYCSubmission) => {
     setKycToProcess(kyc);
     setRejectDialogOpen(true);
+  };
+
+  const handleDeleteClick = (kyc: KYCSubmission) => {
+    setKycToProcess(kyc);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleResetClick = (kyc: KYCSubmission) => {
+    setKycToProcess(kyc);
+    setResetDialogOpen(true);
   };
 
   const handleApprove = async (id: string) => {
@@ -177,9 +190,200 @@ export const KYCApprovals = () => {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    setProcessing(true);
+    try {
+      const { error } = await supabase
+        .from('kyc_submissions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      await refetch();
+      toast.success('KYC record deleted successfully');
+    } catch (error: any) {
+      toast.error('Failed to delete KYC record');
+      console.error(error);
+    } finally {
+      setProcessing(false);
+      setDeleteDialogOpen(false);
+      setKycToProcess(null);
+    }
+  };
+
+  const handleReset = async (id: string) => {
+    setProcessing(true);
+    try {
+      const kyc = kycSubmissions.find(k => k.id === id);
+      if (!kyc) return;
+
+      // Reset to pending
+      const { error: kycError } = await supabase
+        .from('kyc_submissions')
+        .update({ 
+          status: 'pending',
+          reviewed_at: null,
+          reviewed_by: null
+        })
+        .eq('id', id);
+
+      if (kycError) throw kycError;
+
+      // Update profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          wallet_address: kyc.wallet_address,
+          email: kyc.email,
+          kyc_status: 'pending'
+        }, {
+          onConflict: 'wallet_address'
+        });
+
+      if (profileError) throw profileError;
+
+      await refetch();
+      toast.success('KYC status reset to pending');
+    } catch (error: any) {
+      toast.error('Failed to reset KYC status');
+      console.error(error);
+    } finally {
+      setProcessing(false);
+      setResetDialogOpen(false);
+      setKycToProcess(null);
+    }
+  };
+
   const pendingKYC = kycSubmissions.filter(kyc => kyc.status === 'pending');
-  const approvedCount = kycSubmissions.filter(k => k.status === 'approved').length;
-  const rejectedCount = kycSubmissions.filter(k => k.status === 'rejected').length;
+  const approvedKYC = kycSubmissions.filter(kyc => kyc.status === 'approved');
+  const rejectedKYC = kycSubmissions.filter(kyc => kyc.status === 'rejected');
+
+  const renderKYCCard = (kyc: KYCSubmission, showActions: boolean = true) => (
+    <Card key={kyc.id} className="glass p-6">
+      <div className="flex items-start justify-between mb-4">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <code className="text-lg font-semibold">
+              {kyc.wallet_address.slice(0, 10)}...{kyc.wallet_address.slice(-8)}
+            </code>
+            <Badge className={
+              kyc.risk_level === 'low' ? 'bg-success' :
+              kyc.risk_level === 'medium' ? 'bg-secondary' :
+              'bg-destructive'
+            }>
+              {kyc.risk_level} Risk
+            </Badge>
+            <Badge variant={
+              kyc.status === 'approved' ? 'default' :
+              kyc.status === 'rejected' ? 'destructive' :
+              'secondary'
+            }>
+              {kyc.status}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span>Submitted: {new Date(kyc.submitted_at).toLocaleString()}</span>
+            {kyc.reviewed_at && (
+              <>
+                <span>•</span>
+                <span>Reviewed: {new Date(kyc.reviewed_at).toLocaleString()}</span>
+              </>
+            )}
+            <span>•</span>
+            <span>Country: {kyc.country}</span>
+            <span>•</span>
+            <span>Document: {kyc.document_type}</span>
+          </div>
+        </div>
+        
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2"
+            onClick={() => handleViewDetails(kyc)}
+          >
+            <Eye className="h-4 w-4" />
+            Details
+          </Button>
+          
+          {showActions && kyc.status === 'pending' && (
+            <>
+              <Button 
+                size="sm" 
+                className="gap-2 bg-success hover:bg-success/90"
+                onClick={() => handleApproveClick(kyc)}
+                disabled={processing}
+              >
+                {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                Approve
+              </Button>
+              <Button 
+                size="sm" 
+                variant="destructive"
+                className="gap-2"
+                onClick={() => handleRejectClick(kyc)}
+                disabled={processing}
+              >
+                {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+                Reject
+              </Button>
+            </>
+          )}
+          
+          {kyc.status !== 'pending' && (
+            <Button 
+              size="sm" 
+              variant="outline"
+              className="gap-2"
+              onClick={() => handleResetClick(kyc)}
+              disabled={processing}
+            >
+              <RotateCcw className="h-4 w-4" />
+              Reset
+            </Button>
+          )}
+          
+          <Button 
+            size="sm" 
+            variant="outline"
+            className="gap-2 text-destructive hover:text-destructive"
+            onClick={() => handleDeleteClick(kyc)}
+            disabled={processing}
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </Button>
+        </div>
+      </div>
+      
+      <div className="flex gap-2 flex-wrap">
+        <div className="px-3 py-1.5 rounded-md bg-muted/30 text-sm">
+          {kyc.document_type}: {kyc.document_number}
+        </div>
+        {kyc.selfie_verified && (
+          <div className="px-3 py-1.5 rounded-md bg-success/20 text-sm">
+            Selfie Verified
+          </div>
+        )}
+      </div>
+      
+      {kyc.risk_level === 'high' && (
+        <div className="mt-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-semibold text-destructive mb-1">High Risk Alert</p>
+              <p className="text-muted-foreground">
+                This submission has been flagged for manual review. Please verify all documents carefully.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
   
   return (
     <div className="flex min-h-screen">
@@ -214,11 +418,11 @@ export const KYCApprovals = () => {
             </Card>
             <Card className="glass p-6">
               <p className="text-sm text-muted-foreground mb-1">Approved</p>
-              <p className="text-3xl font-bold text-success">{approvedCount}</p>
+              <p className="text-3xl font-bold text-success">{approvedKYC.length}</p>
             </Card>
             <Card className="glass p-6">
               <p className="text-sm text-muted-foreground mb-1">Rejected</p>
-              <p className="text-3xl font-bold text-destructive">{rejectedCount}</p>
+              <p className="text-3xl font-bold text-destructive">{rejectedKYC.length}</p>
             </Card>
             <Card className="glass p-6">
               <p className="text-sm text-muted-foreground mb-1">Total Submissions</p>
@@ -226,101 +430,55 @@ export const KYCApprovals = () => {
             </Card>
           </div>
           
-          {/* KYC Queue */}
+          {/* KYC Tabs */}
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : pendingKYC.length === 0 ? (
-            <Card className="glass p-12 text-center">
-              <p className="text-muted-foreground">No pending KYC submissions</p>
-            </Card>
           ) : (
-            <div className="space-y-4">
-              {pendingKYC.map((kyc) => (
-              <Card key={kyc.id} className="glass p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      <code className="text-lg font-semibold">
-                        {kyc.wallet_address.slice(0, 10)}...{kyc.wallet_address.slice(-8)}
-                      </code>
-                      <Badge className={
-                        kyc.risk_level === 'low' ? 'bg-success' :
-                        kyc.risk_level === 'medium' ? 'bg-secondary' :
-                        'bg-destructive'
-                      }>
-                        {kyc.risk_level} Risk
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>Submitted: {new Date(kyc.submitted_at).toLocaleString()}</span>
-                      <span>•</span>
-                      <span>Country: {kyc.country}</span>
-                      <span>•</span>
-                      <span>Document: {kyc.document_type}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="gap-2"
-                      onClick={() => handleViewDetails(kyc)}
-                    >
-                      <Eye className="h-4 w-4" />
-                      View Details
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      className="gap-2 bg-success hover:bg-success/90"
-                      onClick={() => handleApproveClick(kyc)}
-                      disabled={processing}
-                    >
-                      {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                      Approve
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="destructive"
-                      className="gap-2"
-                      onClick={() => handleRejectClick(kyc)}
-                      disabled={processing}
-                    >
-                      {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
-                      Reject
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="flex gap-2 flex-wrap">
-                  <div className="px-3 py-1.5 rounded-md bg-muted/30 text-sm">
-                    {kyc.document_type}: {kyc.document_number}
-                  </div>
-                  {kyc.selfie_verified && (
-                    <div className="px-3 py-1.5 rounded-md bg-success/20 text-sm">
-                      Selfie Verified
-                    </div>
-                  )}
-                </div>
-                
-                {kyc.risk_level === 'high' && (
-                  <div className="mt-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-                    <div className="flex items-start gap-2">
-                      <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
-                      <div className="text-sm">
-                        <p className="font-semibold text-destructive mb-1">High Risk Alert</p>
-                        <p className="text-muted-foreground">
-                          This submission has been flagged for manual review. Please verify all documents carefully.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+            <Tabs defaultValue="pending" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="pending">
+                  Pending ({pendingKYC.length})
+                </TabsTrigger>
+                <TabsTrigger value="approved">
+                  Approved ({approvedKYC.length})
+                </TabsTrigger>
+                <TabsTrigger value="rejected">
+                  Rejected ({rejectedKYC.length})
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="pending" className="space-y-4 mt-6">
+                {pendingKYC.length === 0 ? (
+                  <Card className="glass p-12 text-center">
+                    <p className="text-muted-foreground">No pending KYC submissions</p>
+                  </Card>
+                ) : (
+                  pendingKYC.map((kyc) => renderKYCCard(kyc, true))
                 )}
-              </Card>
-              ))}
-            </div>
+              </TabsContent>
+
+              <TabsContent value="approved" className="space-y-4 mt-6">
+                {approvedKYC.length === 0 ? (
+                  <Card className="glass p-12 text-center">
+                    <p className="text-muted-foreground">No approved KYC submissions</p>
+                  </Card>
+                ) : (
+                  approvedKYC.map((kyc) => renderKYCCard(kyc, false))
+                )}
+              </TabsContent>
+
+              <TabsContent value="rejected" className="space-y-4 mt-6">
+                {rejectedKYC.length === 0 ? (
+                  <Card className="glass p-12 text-center">
+                    <p className="text-muted-foreground">No rejected KYC submissions</p>
+                  </Card>
+                ) : (
+                  rejectedKYC.map((kyc) => renderKYCCard(kyc, false))
+                )}
+              </TabsContent>
+            </Tabs>
           )}
         </main>
       </div>
@@ -390,6 +548,55 @@ export const KYCApprovals = () => {
             >
               {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Reject
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete KYC Record?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete the KYC record for{' '}
+              <code className="font-semibold">{kycToProcess?.wallet_address.slice(0, 10)}...{kycToProcess?.wallet_address.slice(-8)}</code>?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={processing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => kycToProcess && handleDelete(kycToProcess.id)}
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={processing}
+            >
+              {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reset Confirmation Dialog */}
+      <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset KYC Status?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to reset the KYC status to pending for{' '}
+              <code className="font-semibold">{kycToProcess?.wallet_address.slice(0, 10)}...{kycToProcess?.wallet_address.slice(-8)}</code>?
+              This will allow you to review and approve/reject again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={processing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => kycToProcess && handleReset(kycToProcess.id)}
+              disabled={processing}
+            >
+              {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Reset to Pending
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
