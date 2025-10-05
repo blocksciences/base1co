@@ -1095,6 +1095,120 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          user_id: string | null
+          wallet_address: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          user_id?: string | null
+          wallet_address: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          user_id?: string | null
+          wallet_address?: string
+        }
+        Relationships: []
+      }
+      referral_rewards: {
+        Row: {
+          amount: number
+          claimed: boolean | null
+          created_at: string
+          id: string
+          project_id: string | null
+          purchase_amount: number
+          referral_id: string | null
+          reward_type: string
+          tx_hash: string | null
+          wallet_address: string
+        }
+        Insert: {
+          amount: number
+          claimed?: boolean | null
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          purchase_amount: number
+          referral_id?: string | null
+          reward_type: string
+          tx_hash?: string | null
+          wallet_address: string
+        }
+        Update: {
+          amount?: number
+          claimed?: boolean | null
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          purchase_amount?: number
+          referral_id?: string | null
+          reward_type?: string
+          tx_hash?: string | null
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_rewards_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_rewards_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referrals: {
+        Row: {
+          id: string
+          referee_wallet: string
+          referral_code: string
+          referrer_wallet: string
+          registration_date: string
+          status: string | null
+          total_purchases: number | null
+          total_rewards_earned: number | null
+        }
+        Insert: {
+          id?: string
+          referee_wallet: string
+          referral_code: string
+          referrer_wallet: string
+          registration_date?: string
+          status?: string | null
+          total_purchases?: number | null
+          total_rewards_earned?: number | null
+        }
+        Update: {
+          id?: string
+          referee_wallet?: string
+          referral_code?: string
+          referrer_wallet?: string
+          registration_date?: string
+          status?: string | null
+          total_purchases?: number | null
+          total_rewards_earned?: number | null
+        }
+        Relationships: []
+      }
       staking_lock_periods: {
         Row: {
           apy_rate: number
@@ -1581,6 +1695,10 @@ export type Database = {
       calculate_staking_rewards: {
         Args: { stake_id: string }
         Returns: number
+      }
+      generate_referral_code: {
+        Args: { user_wallet: string }
+        Returns: string
       }
       get_user_tier: {
         Args: { user_wallet: string }

@@ -13,6 +13,8 @@ import { ErrorFallback } from "./components/ErrorFallback";
 import { LoadingScreen } from "./components/LoadingScreen";
 import { AdminLoadingSkeleton } from "./components/AdminLoadingSkeleton";
 import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
+import { ErrorTracker } from "./components/ErrorTracker";
+import { SEO } from "./components/SEO";
 
 // Eagerly loaded routes (public pages)
 import Index from "./pages/Index";
@@ -23,6 +25,8 @@ import Staking from "./pages/Staking";
 import Auth from "./pages/Auth";
 import LaunchICO from "./pages/LaunchICO";
 import ProjectTransparency from "./pages/ProjectTransparency";
+import Referrals from "./pages/Referrals";
+import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
 // Lazy loaded admin routes (reduces initial bundle by ~60%)
@@ -62,6 +66,8 @@ const AppContent = () => {
 
   return (
     <>
+      <ErrorTracker />
+      <SEO />
       <Toaster />
       <Sonner />
       <BrowserRouter>
@@ -74,6 +80,8 @@ const AppContent = () => {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/staking" element={<Staking />} />
           <Route path="/launch" element={<LaunchICO />} />
+          <Route path="/referrals" element={<Referrals />} />
+          <Route path="/analytics" element={<Analytics />} />
           
           {/* Admin Routes - Protected & Lazy Loaded */}
           <Route path="/admin" element={

@@ -51,6 +51,22 @@ export const Header = () => {
             >
               Staking
             </Link>
+            <Link
+              to="/referrals"
+              className={`text-sm font-medium transition-colors hover:text-primary ${
+                isActive('/referrals') ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              Referrals
+            </Link>
+            <Link
+              to="/analytics"
+              className={`text-sm font-medium transition-colors hover:text-primary ${
+                isActive('/analytics') ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              Analytics
+            </Link>
           </nav>
         </div>
         
