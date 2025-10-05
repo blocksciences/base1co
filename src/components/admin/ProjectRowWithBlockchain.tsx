@@ -48,6 +48,8 @@ export const ProjectRowWithBlockchain = ({
           project.status === 'live' ? 'bg-success' :
           project.status === 'pending' ? 'bg-secondary' :
           project.status === 'upcoming' ? 'bg-primary' :
+          project.status === 'success' ? 'bg-success' :
+          project.status === 'failed' ? 'bg-destructive' :
           project.status === 'ended' ? 'bg-muted' :
           'bg-destructive'
         }>

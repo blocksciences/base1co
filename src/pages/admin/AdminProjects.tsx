@@ -204,6 +204,8 @@ export const AdminProjects = () => {
                   <SelectItem value="live">Live</SelectItem>
                   <SelectItem value="upcoming">Upcoming</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="success">Success</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
                   <SelectItem value="ended">Ended</SelectItem>
                 </SelectContent>
               </Select>
