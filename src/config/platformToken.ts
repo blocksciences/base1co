@@ -5,6 +5,14 @@ export const PLATFORM_TOKEN_CONFIG = {
   decimals: 18,
   totalSupply: '10000000000', // 10 Billion tokens
   
+  // Deployed Contract Addresses (Base Sepolia)
+  contracts: {
+    listToken: '0x74cDba9c1A313dC95e4f2B53EA4bf64c78E0CE35',
+    tierManager: '0xC8Feacd6940cF797Dd9cE53A3FB95Ac906397D22',
+    stakingVault: '0x56092aecE23773276F3d25646f8E1f65509b8D9c',
+    governanceVault: '0x7DAf3389BA327ef63f2ca95CF73DAeC16243bE73',
+  },
+  
   // Token Allocation (percentages)
   allocation: {
     stakingRewards: 30,    // 3B tokens - 30% for staking rewards
