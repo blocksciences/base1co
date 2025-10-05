@@ -169,7 +169,7 @@ export const KYCApprovals = () => {
             <Info className="h-4 w-4 text-orange-500" />
             <AlertDescription className="text-sm">
               <strong className="text-orange-600">Two-Step Approval Required:</strong> After approving KYC here, you must also approve on-chain via the{' '}
-              <Link to="/admin/quick-kyc-approval" className="underline font-semibold hover:text-orange-700">
+              <Link to="/admin/quick-kyc" className="underline font-semibold hover:text-orange-700">
                 Quick KYC Approval
               </Link>{' '}
               page. Otherwise, users won't be able to invest.
