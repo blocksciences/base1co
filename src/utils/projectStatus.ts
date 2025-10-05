@@ -13,10 +13,9 @@ export const calculateProjectStatus = (
     return databaseStatus;
   }
 
-  // Parse dates as local dates (not UTC)
   const now = new Date();
-  const start = new Date(startDate + 'T00:00:00');
-  const end = new Date(endDate + 'T23:59:59');
+  const start = new Date(startDate);
+  const end = new Date(endDate);
 
   // Check if ICO hasn't started yet
   if (now < start) {

@@ -110,8 +110,8 @@ export const ProjectRowWithBlockchain = ({
       </td>
       <td className="p-4">
         <div className="text-sm">
-          <p className="text-muted-foreground">{new Date(project.start_date + 'T00:00:00').toLocaleDateString()}</p>
-          <p className="text-muted-foreground">{new Date(project.end_date + 'T23:59:59').toLocaleDateString()}</p>
+          <p className="text-muted-foreground">{new Date(project.start_date).toLocaleString()}</p>
+          <p className="text-muted-foreground">{new Date(project.end_date).toLocaleString()}</p>
         </div>
       </td>
       <td className="p-4">
