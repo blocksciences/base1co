@@ -47,7 +47,7 @@ export const ProjectRowWithBlockchain = ({
   );
   const statusLabel = getStatusLabel(actualStatus);
 
-  // Format dates properly
+  // Format dates in UTC to avoid timezone confusion
   const formatDate = (dateStr: string) => {
     try {
       const date = new Date(dateStr);
@@ -57,7 +57,9 @@ export const ProjectRowWithBlockchain = ({
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
-        hour12: true
+        hour12: true,
+        timeZone: 'UTC',
+        timeZoneName: 'short'
       });
     } catch (e) {
       return 'Invalid Date';
