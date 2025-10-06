@@ -10,6 +10,7 @@ const corsHeaders = {
 };
 
 interface DeploymentRequest {
+  // Token Details
   projectName: string;
   tokenSymbol: string;
   totalSupply: string;
@@ -22,6 +23,54 @@ interface DeploymentRequest {
   startDate: string;
   endDate: string;
   deployerAddress: string;
+  
+  // Company Information
+  companyLegalName: string;
+  registrationNumber: string;
+  registrationCountry: string;
+  companyAddress: string;
+  businessEmail: string;
+  businessPhone: string;
+  
+  // Project Details
+  projectDescription: string;
+  problemStatement: string;
+  solution: string;
+  targetMarket: string;
+  useOfFunds: string;
+  
+  // Team Information
+  founderName: string;
+  founderRole: string;
+  founderLinkedin: string;
+  founderBio: string;
+  teamSize: string;
+  advisors: string;
+  
+  // Social Links
+  website: string;
+  whitepaper: string;
+  twitter: string;
+  telegram: string;
+  discord: string;
+  medium: string;
+  github: string;
+  
+  // Tokenomics
+  publicSaleAllocation: string;
+  teamAllocation: string;
+  ecosystemAllocation: string;
+  liquidityAllocation: string;
+  seedInvestorsAllocation: string;
+  vestingSchedule: string;
+  allocationImageUrl: string;
+  vestingScheduleImageUrl: string;
+  
+  // Legal & Compliance
+  jurisdictionCompliance: string;
+  auditReport: string;
+  kycProvider: string;
+  legalOpinion: string;
 }
 
 const LAUNCHPAD_ABI = [
@@ -323,18 +372,76 @@ serve(async (req) => {
     const { data: project, error: projectError } = await supabaseClient
       .from('projects')
       .insert({
+        // Basic Info
         name: deploymentData.projectName,
         symbol: deploymentData.tokenSymbol,
-        description: `ICO for ${deploymentData.projectName}`,
+        description: deploymentData.projectDescription || `ICO for ${deploymentData.projectName}`,
         goal_amount: parseFloat(deploymentData.hardCap),
+        hard_cap: parseFloat(deploymentData.hardCap),
+        soft_cap: parseFloat(deploymentData.softCap),
+        min_contribution: parseFloat(deploymentData.minContribution),
+        max_contribution: parseFloat(deploymentData.maxContribution),
         start_date: deploymentData.startDate,
         end_date: deploymentData.endDate,
         status: 'live',
         created_by: deploymentData.deployerAddress,
+        
+        // Contract Addresses
         contract_address: saleAddress,
+        token_address: tokenAddress,
         kyc_registry_address: kycAddress,
         vesting_vault_address: vestingAddress,
         liquidity_locker_address: lockerAddress,
+        
+        // Company Information
+        company_legal_name: deploymentData.companyLegalName,
+        registration_number: deploymentData.registrationNumber,
+        registration_country: deploymentData.registrationCountry,
+        company_address: deploymentData.companyAddress,
+        business_email: deploymentData.businessEmail,
+        business_phone: deploymentData.businessPhone,
+        
+        // Project Details
+        problem_statement: deploymentData.problemStatement,
+        solution: deploymentData.solution,
+        target_market: deploymentData.targetMarket,
+        use_of_funds: deploymentData.useOfFunds,
+        
+        // Team Information
+        founder_name: deploymentData.founderName,
+        founder_role: deploymentData.founderRole,
+        founder_linkedin: deploymentData.founderLinkedin,
+        founder_bio: deploymentData.founderBio,
+        team_size: deploymentData.teamSize,
+        advisors: deploymentData.advisors,
+        
+        // Social Links
+        website: deploymentData.website,
+        whitepaper: deploymentData.whitepaper,
+        twitter: deploymentData.twitter,
+        telegram: deploymentData.telegram,
+        discord: deploymentData.discord,
+        medium: deploymentData.medium,
+        github: deploymentData.github,
+        
+        // Tokenomics
+        total_supply: parseFloat(deploymentData.totalSupply),
+        token_decimals: deploymentData.tokenDecimals,
+        token_price: parseFloat(deploymentData.tokenPrice),
+        public_sale_allocation: parseFloat(deploymentData.publicSaleAllocation),
+        team_allocation: parseFloat(deploymentData.teamAllocation),
+        ecosystem_allocation: parseFloat(deploymentData.ecosystemAllocation),
+        liquidity_allocation: parseFloat(deploymentData.liquidityAllocation),
+        seed_investors_allocation: parseFloat(deploymentData.seedInvestorsAllocation),
+        vesting_schedule: deploymentData.vestingSchedule,
+        allocation_image_url: deploymentData.allocationImageUrl,
+        vesting_schedule_image_url: deploymentData.vestingScheduleImageUrl,
+        
+        // Legal & Compliance
+        jurisdiction_compliance: deploymentData.jurisdictionCompliance,
+        audit_report: deploymentData.auditReport,
+        kyc_provider: deploymentData.kycProvider,
+        legal_opinion: deploymentData.legalOpinion,
       })
       .select()
       .single();

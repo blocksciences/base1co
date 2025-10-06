@@ -891,82 +891,199 @@ export type Database = {
       }
       projects: {
         Row: {
+          advisors: string | null
+          allocation_image_url: string | null
+          audit_report: string | null
+          business_email: string | null
+          business_phone: string | null
+          company_address: string | null
+          company_legal_name: string | null
           contract_address: string | null
           created_at: string | null
           created_by: string | null
           description: string | null
+          discord: string | null
+          ecosystem_allocation: number | null
           end_date: string
+          founder_bio: string | null
+          founder_linkedin: string | null
+          founder_name: string | null
+          founder_role: string | null
+          github: string | null
           goal_amount: number
           hard_cap: number | null
           id: string
           is_paused: boolean | null
+          jurisdiction_compliance: string | null
+          kyc_provider: string | null
           kyc_registry_address: string | null
+          legal_opinion: string | null
+          liquidity_allocation: number | null
           liquidity_locker_address: string | null
           max_contribution: number | null
           max_per_wallet: number | null
+          medium: string | null
           min_contribution: number | null
           name: string
           participants_count: number | null
+          problem_statement: string | null
           progress_percentage: number | null
+          public_sale_allocation: number | null
           raised_amount: number | null
+          registration_country: string | null
+          registration_number: string | null
+          seed_investors_allocation: number | null
           soft_cap: number | null
+          solution: string | null
           start_date: string
           status: string
           symbol: string
+          target_market: string | null
+          team_allocation: number | null
+          team_size: string | null
+          telegram: string | null
+          token_address: string | null
+          token_decimals: number | null
+          token_price: number | null
+          total_supply: number | null
+          twitter: string | null
           updated_at: string | null
+          use_of_funds: string | null
+          vesting_schedule: string | null
+          vesting_schedule_image_url: string | null
           vesting_vault_address: string | null
+          website: string | null
+          whitepaper: string | null
         }
         Insert: {
+          advisors?: string | null
+          allocation_image_url?: string | null
+          audit_report?: string | null
+          business_email?: string | null
+          business_phone?: string | null
+          company_address?: string | null
+          company_legal_name?: string | null
           contract_address?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          discord?: string | null
+          ecosystem_allocation?: number | null
           end_date: string
+          founder_bio?: string | null
+          founder_linkedin?: string | null
+          founder_name?: string | null
+          founder_role?: string | null
+          github?: string | null
           goal_amount: number
           hard_cap?: number | null
           id?: string
           is_paused?: boolean | null
+          jurisdiction_compliance?: string | null
+          kyc_provider?: string | null
           kyc_registry_address?: string | null
+          legal_opinion?: string | null
+          liquidity_allocation?: number | null
           liquidity_locker_address?: string | null
           max_contribution?: number | null
           max_per_wallet?: number | null
+          medium?: string | null
           min_contribution?: number | null
           name: string
           participants_count?: number | null
+          problem_statement?: string | null
           progress_percentage?: number | null
+          public_sale_allocation?: number | null
           raised_amount?: number | null
+          registration_country?: string | null
+          registration_number?: string | null
+          seed_investors_allocation?: number | null
           soft_cap?: number | null
+          solution?: string | null
           start_date: string
           status?: string
           symbol: string
+          target_market?: string | null
+          team_allocation?: number | null
+          team_size?: string | null
+          telegram?: string | null
+          token_address?: string | null
+          token_decimals?: number | null
+          token_price?: number | null
+          total_supply?: number | null
+          twitter?: string | null
           updated_at?: string | null
+          use_of_funds?: string | null
+          vesting_schedule?: string | null
+          vesting_schedule_image_url?: string | null
           vesting_vault_address?: string | null
+          website?: string | null
+          whitepaper?: string | null
         }
         Update: {
+          advisors?: string | null
+          allocation_image_url?: string | null
+          audit_report?: string | null
+          business_email?: string | null
+          business_phone?: string | null
+          company_address?: string | null
+          company_legal_name?: string | null
           contract_address?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          discord?: string | null
+          ecosystem_allocation?: number | null
           end_date?: string
+          founder_bio?: string | null
+          founder_linkedin?: string | null
+          founder_name?: string | null
+          founder_role?: string | null
+          github?: string | null
           goal_amount?: number
           hard_cap?: number | null
           id?: string
           is_paused?: boolean | null
+          jurisdiction_compliance?: string | null
+          kyc_provider?: string | null
           kyc_registry_address?: string | null
+          legal_opinion?: string | null
+          liquidity_allocation?: number | null
           liquidity_locker_address?: string | null
           max_contribution?: number | null
           max_per_wallet?: number | null
+          medium?: string | null
           min_contribution?: number | null
           name?: string
           participants_count?: number | null
+          problem_statement?: string | null
           progress_percentage?: number | null
+          public_sale_allocation?: number | null
           raised_amount?: number | null
+          registration_country?: string | null
+          registration_number?: string | null
+          seed_investors_allocation?: number | null
           soft_cap?: number | null
+          solution?: string | null
           start_date?: string
           status?: string
           symbol?: string
+          target_market?: string | null
+          team_allocation?: number | null
+          team_size?: string | null
+          telegram?: string | null
+          token_address?: string | null
+          token_decimals?: number | null
+          token_price?: number | null
+          total_supply?: number | null
+          twitter?: string | null
           updated_at?: string | null
+          use_of_funds?: string | null
+          vesting_schedule?: string | null
+          vesting_schedule_image_url?: string | null
           vesting_vault_address?: string | null
+          website?: string | null
+          whitepaper?: string | null
         }
         Relationships: []
       }

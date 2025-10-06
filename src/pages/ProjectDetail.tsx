@@ -423,25 +423,60 @@ export const ProjectDetail = () => {
         <Tabs defaultValue="overview" className="space-y-8">
           <TabsList className="glass">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="company">Company</TabsTrigger>
             <TabsTrigger value="tokenomics">Tokenomics</TabsTrigger>
-            <TabsTrigger value="roadmap">Roadmap</TabsTrigger>
             <TabsTrigger value="team">Team</TabsTrigger>
+            <TabsTrigger value="legal">Legal</TabsTrigger>
           </TabsList>
           
+          {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             <Card className="glass p-8">
               <h2 className="text-2xl font-bold mb-4">About the Project</h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  {project.description} This innovative platform leverages cutting-edge blockchain technology 
-                  to deliver unprecedented value to users. Built on Base, the project ensures fast transactions, 
-                  low fees, and maximum security.
+                  {project.description}
                 </p>
-                <p className="text-muted-foreground leading-relaxed mt-4">
-                  The team has extensive experience in blockchain development and has successfully delivered 
-                  multiple projects in the past. With a strong focus on community and transparency, this 
-                  project aims to revolutionize its industry.
-                </p>
+                
+                {(project as any).problem_statement && (
+                  <div className="mt-6 p-6 rounded-xl bg-orange-500/10 border border-orange-500/20">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-orange-500" />
+                      Problem Statement
+                    </h3>
+                    <p className="text-muted-foreground">{(project as any).problem_statement}</p>
+                  </div>
+                )}
+                
+                {(project as any).solution && (
+                  <div className="mt-6 p-6 rounded-xl bg-green-500/10 border border-green-500/20">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      Our Solution
+                    </h3>
+                    <p className="text-muted-foreground">{(project as any).solution}</p>
+                  </div>
+                )}
+                
+                {(project as any).target_market && (
+                  <div className="mt-6 p-6 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <Target className="h-5 w-5 text-blue-500" />
+                      Target Market
+                    </h3>
+                    <p className="text-muted-foreground">{(project as any).target_market}</p>
+                  </div>
+                )}
+                
+                {(project as any).use_of_funds && (
+                  <div className="mt-6 p-6 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-purple-500" />
+                      Use of Funds
+                    </h3>
+                    <p className="text-muted-foreground">{(project as any).use_of_funds}</p>
+                  </div>
+                )}
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
@@ -476,120 +511,328 @@ export const ProjectDetail = () => {
             </Card>
           </TabsContent>
           
+          {/* Company Tab */}
+          <TabsContent value="company" className="space-y-6">
+            <Card className="glass p-8">
+              <h2 className="text-2xl font-bold mb-6">Company Information</h2>
+              <div className="grid md:grid-cols-2 gap-6">
+                {(project as any).company_legal_name && (
+                  <div className="p-4 rounded-lg bg-muted/20">
+                    <p className="text-sm text-muted-foreground mb-1">Legal Name</p>
+                    <p className="font-semibold">{(project as any).company_legal_name}</p>
+                  </div>
+                )}
+                {(project as any).registration_number && (
+                  <div className="p-4 rounded-lg bg-muted/20">
+                    <p className="text-sm text-muted-foreground mb-1">Registration Number</p>
+                    <p className="font-semibold">{(project as any).registration_number}</p>
+                  </div>
+                )}
+                {(project as any).registration_country && (
+                  <div className="p-4 rounded-lg bg-muted/20">
+                    <p className="text-sm text-muted-foreground mb-1">Country</p>
+                    <p className="font-semibold">{(project as any).registration_country}</p>
+                  </div>
+                )}
+                {(project as any).company_address && (
+                  <div className="p-4 rounded-lg bg-muted/20">
+                    <p className="text-sm text-muted-foreground mb-1">Address</p>
+                    <p className="font-semibold">{(project as any).company_address}</p>
+                  </div>
+                )}
+                {(project as any).business_email && (
+                  <div className="p-4 rounded-lg bg-muted/20">
+                    <p className="text-sm text-muted-foreground mb-1">Business Email</p>
+                    <p className="font-semibold">{(project as any).business_email}</p>
+                  </div>
+                )}
+                {(project as any).business_phone && (
+                  <div className="p-4 rounded-lg bg-muted/20">
+                    <p className="text-sm text-muted-foreground mb-1">Business Phone</p>
+                    <p className="font-semibold">{(project as any).business_phone}</p>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </TabsContent>
+          
+          {/* Tokenomics Tab */}
           <TabsContent value="tokenomics" className="space-y-6">
             <Card className="glass p-8">
               <h2 className="text-2xl font-bold mb-6">Token Distribution</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-4">
-                  {[
-                    { label: 'Public Sale', value: 40, color: 'bg-primary' },
-                    { label: 'Team & Advisors', value: 20, color: 'bg-secondary' },
-                    { label: 'Ecosystem Fund', value: 25, color: 'bg-success' },
-                    { label: 'Liquidity', value: 15, color: 'bg-accent' },
-                  ].map((item) => (
-                    <div key={item.label} className="space-y-2">
+                  {(project as any).public_sale_allocation && (
+                    <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
-                          <div className={`h-3 w-3 rounded ${item.color}`} />
-                          <span>{item.label}</span>
+                          <div className="h-3 w-3 rounded bg-primary" />
+                          <span>Public Sale</span>
                         </div>
-                        <span className="font-semibold">{item.value}%</span>
+                        <span className="font-semibold">{(project as any).public_sale_allocation}%</span>
                       </div>
-                      <Progress value={item.value} className="h-2" />
+                      <Progress value={(project as any).public_sale_allocation} className="h-2" />
                     </div>
-                  ))}
+                  )}
+                  {(project as any).team_allocation && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="h-3 w-3 rounded bg-secondary" />
+                          <span>Team & Advisors</span>
+                        </div>
+                        <span className="font-semibold">{(project as any).team_allocation}%</span>
+                      </div>
+                      <Progress value={(project as any).team_allocation} className="h-2" />
+                    </div>
+                  )}
+                  {(project as any).ecosystem_allocation && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="h-3 w-3 rounded bg-success" />
+                          <span>Ecosystem Fund</span>
+                        </div>
+                        <span className="font-semibold">{(project as any).ecosystem_allocation}%</span>
+                      </div>
+                      <Progress value={(project as any).ecosystem_allocation} className="h-2" />
+                    </div>
+                  )}
+                  {(project as any).liquidity_allocation && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="h-3 w-3 rounded bg-accent" />
+                          <span>Liquidity</span>
+                        </div>
+                        <span className="font-semibold">{(project as any).liquidity_allocation}%</span>
+                      </div>
+                      <Progress value={(project as any).liquidity_allocation} className="h-2" />
+                    </div>
+                  )}
+                  {(project as any).seed_investors_allocation && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="h-3 w-3 rounded bg-blue-500" />
+                          <span>Seed Investors</span>
+                        </div>
+                        <span className="font-semibold">{(project as any).seed_investors_allocation}%</span>
+                      </div>
+                      <Progress value={(project as any).seed_investors_allocation} className="h-2" />
+                    </div>
+                  )}
                 </div>
                 
                 <div className="space-y-4">
-                  <div className="p-4 rounded-lg bg-muted/20">
-                    <p className="text-sm text-muted-foreground mb-1">Total Supply</p>
-                    <p className="text-2xl font-bold">1,000,000,000 {project.symbol}</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-muted/20">
-                    <p className="text-sm text-muted-foreground mb-1">Initial Market Cap</p>
-                    <p className="text-2xl font-bold">$50,000,000</p>
-                  </div>
+                  {(project as any).total_supply && (
+                    <div className="p-4 rounded-lg bg-muted/20">
+                      <p className="text-sm text-muted-foreground mb-1">Total Supply</p>
+                      <p className="text-2xl font-bold">{Number((project as any).total_supply).toLocaleString()} {project.symbol}</p>
+                    </div>
+                  )}
+                  {(project as any).token_price && (
+                    <div className="p-4 rounded-lg bg-muted/20">
+                      <p className="text-sm text-muted-foreground mb-1">Token Price</p>
+                      <p className="text-2xl font-bold">{(project as any).token_price} ETH</p>
+                    </div>
+                  )}
                   <div className="p-4 rounded-lg bg-muted/20">
                     <p className="text-sm text-muted-foreground mb-1">Network</p>
                     <p className="text-2xl font-bold">{project.network}</p>
                   </div>
                 </div>
               </div>
+              
+              {(project as any).allocation_image_url && (
+                <div className="mt-8 border-t border-border/50 pt-8">
+                  <h3 className="text-lg font-semibold mb-4">Token Allocation Chart</h3>
+                  <img 
+                    src={(project as any).allocation_image_url} 
+                    alt="Token Allocation"
+                    className="w-full rounded-lg border border-border/50"
+                  />
+                </div>
+              )}
+              
+              {(project as any).vesting_schedule && (
+                <div className="mt-8 border-t border-border/50 pt-8">
+                  <h3 className="text-lg font-semibold mb-4">Vesting Schedule</h3>
+                  <p className="text-muted-foreground mb-4">{(project as any).vesting_schedule}</p>
+                  {(project as any).vesting_schedule_image_url && (
+                    <img 
+                      src={(project as any).vesting_schedule_image_url} 
+                      alt="Vesting Schedule"
+                      className="w-full rounded-lg border border-border/50"
+                    />
+                  )}
+                </div>
+              )}
             </Card>
           </TabsContent>
           
-          <TabsContent value="roadmap" className="space-y-6">
+          {/* Team Tab */}
+          <TabsContent value="team" className="space-y-6">
             <Card className="glass p-8">
-              <h2 className="text-2xl font-bold mb-6">Development Roadmap</h2>
+              <h2 className="text-2xl font-bold mb-6">Meet the Team</h2>
               
-              <div className="space-y-6">
-                {[
-                  { quarter: 'Q4 2024', title: 'Platform Launch', status: 'completed', items: ['Smart contract deployment', 'Security audit completion', 'Website launch'] },
-                  { quarter: 'Q1 2025', title: 'Token Sale', status: 'current', items: ['Public sale begins', 'Marketing campaign', 'Community building'] },
-                  { quarter: 'Q2 2025', title: 'Product Development', status: 'upcoming', items: ['Beta version release', 'Partnership announcements', 'Exchange listings'] },
-                  { quarter: 'Q3 2025', title: 'Ecosystem Expansion', status: 'upcoming', items: ['Mobile app launch', 'Additional features', 'Global expansion'] },
-                ].map((phase, index) => (
-                  <div key={index} className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                        phase.status === 'completed' ? 'bg-success' :
-                        phase.status === 'current' ? 'bg-primary' :
-                        'bg-muted'
-                      }`}>
-                        {phase.status === 'completed' && <CheckCircle2 className="h-5 w-5" />}
-                        {phase.status === 'current' && <Clock className="h-5 w-5 animate-pulse" />}
-                        {phase.status === 'upcoming' && <Target className="h-5 w-5" />}
-                      </div>
-                      {index < 3 && <div className="w-0.5 h-full bg-border mt-2" />}
+              {(project as any).founder_name && (
+                <div className="mb-8 p-6 rounded-xl bg-primary/5 border border-primary/20">
+                  <div className="flex items-start gap-6">
+                    <div className="h-24 w-24 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                      <Users className="h-12 w-12 text-primary" />
                     </div>
-                    <div className="flex-1 pb-8">
+                    <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <Badge variant="outline">{phase.quarter}</Badge>
-                        <h3 className="font-bold text-lg">{phase.title}</h3>
+                        <h3 className="text-2xl font-bold">{(project as any).founder_name}</h3>
+                        {(project as any).founder_role && (
+                          <Badge variant="outline">{(project as any).founder_role}</Badge>
+                        )}
                       </div>
-                      <ul className="space-y-1 text-sm text-muted-foreground">
-                        {phase.items.map((item, i) => (
-                          <li key={i} className="flex items-center gap-2">
-                            <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
+                      {(project as any).founder_bio && (
+                        <p className="text-muted-foreground mb-4">{(project as any).founder_bio}</p>
+                      )}
+                      {(project as any).founder_linkedin && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-2"
+                          onClick={() => window.open((project as any).founder_linkedin, '_blank')}
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          LinkedIn Profile
+                        </Button>
+                      )}
                     </div>
                   </div>
-                ))}
+                </div>
+              )}
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                {(project as any).team_size && (
+                  <div className="p-6 rounded-xl bg-muted/30">
+                    <p className="text-sm text-muted-foreground mb-2">Team Size</p>
+                    <p className="text-2xl font-bold">{(project as any).team_size} Members</p>
+                  </div>
+                )}
+                {(project as any).advisors && (
+                  <div className="p-6 rounded-xl bg-muted/30">
+                    <p className="text-sm text-muted-foreground mb-2">Advisors</p>
+                    <p className="text-muted-foreground">{(project as any).advisors}</p>
+                  </div>
+                )}
               </div>
             </Card>
           </TabsContent>
           
-          <TabsContent value="team" className="space-y-6">
+          {/* Legal Tab */}
+          <TabsContent value="legal" className="space-y-6">
             <Card className="glass p-8">
-              <h2 className="text-2xl font-bold mb-6">Our Team</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[
-                  { name: 'Alex Chen', role: 'CEO & Founder', image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop' },
-                  { name: 'Sarah Johnson', role: 'CTO', image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop' },
-                  { name: 'Michael Park', role: 'Lead Developer', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop' },
-                  { name: 'Emma Rodriguez', role: 'Head of Marketing', image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop' },
-                  { name: 'David Kim', role: 'Blockchain Architect', image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop' },
-                  { name: 'Lisa Anderson', role: 'Community Manager', image: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=200&h=200&fit=crop' },
-                ].map((member) => (
-                  <div key={member.name} className="text-center space-y-3">
-                    <div className="relative h-32 w-32 mx-auto rounded-full overflow-hidden ring-4 ring-primary/20">
-                      <img 
-                        src={member.image} 
-                        alt={member.name}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                    <div>
-                      <h3 className="font-bold">{member.name}</h3>
-                      <p className="text-sm text-muted-foreground">{member.role}</p>
-                    </div>
+              <h2 className="text-2xl font-bold mb-6">Legal & Compliance</h2>
+              <div className="space-y-6">
+                {(project as any).jurisdiction_compliance && (
+                  <div className="p-6 rounded-xl bg-muted/30">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <Shield className="h-5 w-5 text-primary" />
+                      Jurisdiction & Compliance
+                    </h3>
+                    <p className="text-muted-foreground">{(project as any).jurisdiction_compliance}</p>
                   </div>
-                ))}
+                )}
+                
+                {(project as any).kyc_provider && (
+                  <div className="p-6 rounded-xl bg-muted/30">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <CheckCircle2 className="h-5 w-5 text-success" />
+                      KYC Provider
+                    </h3>
+                    <p className="text-muted-foreground">{(project as any).kyc_provider}</p>
+                  </div>
+                )}
+                
+                {(project as any).audit_report && (
+                  <div className="p-6 rounded-xl bg-muted/30">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-blue-500" />
+                      Security Audit
+                    </h3>
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      onClick={() => window.open((project as any).audit_report, '_blank')}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      View Audit Report
+                    </Button>
+                  </div>
+                )}
+                
+                {(project as any).legal_opinion && (
+                  <div className="p-6 rounded-xl bg-muted/30">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-purple-500" />
+                      Legal Opinion
+                    </h3>
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      onClick={() => window.open((project as any).legal_opinion, '_blank')}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      View Legal Opinion
+                    </Button>
+                  </div>
+                )}
+                
+                <div className="p-6 rounded-xl bg-muted/30">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Copy className="h-5 w-5 text-primary" />
+                    Contract Addresses
+                  </h3>
+                  <div className="space-y-4">
+                    {(project as any).token_address && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-2">Token Contract</p>
+                        <div className="flex items-center gap-2">
+                          <code className="text-sm bg-background px-3 py-2 rounded flex-1 overflow-x-auto">
+                            {(project as any).token_address}
+                          </code>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              navigator.clipboard.writeText((project as any).token_address);
+                              toast.success('Address copied!');
+                            }}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    {project.contractAddress && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-2">Sale Contract</p>
+                        <div className="flex items-center gap-2">
+                          <code className="text-sm bg-background px-3 py-2 rounded flex-1 overflow-x-auto">
+                            {project.contractAddress}
+                          </code>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              navigator.clipboard.writeText(project.contractAddress);
+                              toast.success('Address copied!');
+                            }}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </Card>
           </TabsContent>
