@@ -10,8 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Clock, Users, Target, TrendingUp, Shield, 
   ExternalLink, Twitter, Globe, FileText,
-  Loader2, CheckCircle2, AlertCircle, Lock, Copy
+  Loader2, CheckCircle2, AlertCircle, Lock, Copy, Calendar
 } from 'lucide-react';
+import { format } from 'date-fns';
 import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { toast } from 'sonner';
@@ -335,16 +336,40 @@ export const ProjectDetail = () => {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4 py-4 border-y border-border/50">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Participants</p>
-                    <p className="text-xl font-bold">
-                      {blockchainLoading ? <Loader2 className="h-4 w-4 animate-spin inline" /> : participants.toLocaleString()}
-                    </p>
+                <div className="space-y-4 py-4 border-y border-border/50">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Participants</p>
+                      <p className="text-xl font-bold">
+                        {blockchainLoading ? <Loader2 className="h-4 w-4 animate-spin inline" /> : participants.toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Ends In</p>
+                      <p className="text-xl font-bold">{project.endsIn}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Ends In</p>
-                    <p className="text-xl font-bold">{project.endsIn}</p>
+                  
+                  {/* Sale Start/End Times */}
+                  <div className="space-y-2 pt-2 border-t border-border/30">
+                    {project.startDate && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Calendar className="h-4 w-4 text-green-500" />
+                        <span className="text-muted-foreground">Sale Starts:</span>
+                        <span className="font-semibold text-green-500">
+                          {format(new Date(project.startDate), 'MMM dd, yyyy - hh:mm a')}
+                        </span>
+                      </div>
+                    )}
+                    {project.endDate && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Calendar className="h-4 w-4 text-red-500" />
+                        <span className="text-muted-foreground">Sale Ends:</span>
+                        <span className="font-semibold text-red-500">
+                          {format(new Date(project.endDate), 'MMM dd, yyyy - hh:mm a')}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
