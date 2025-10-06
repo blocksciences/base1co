@@ -78,6 +78,7 @@ export default function CreateICO() {
     seedInvestorsAllocation: '',
     vestingSchedule: '',
     allocationImageUrl: '',
+    vestingScheduleImageUrl: '',
     
     // Legal & Compliance
     jurisdictionCompliance: '',
@@ -466,7 +467,7 @@ export default function CreateICO() {
                           />
                         </div>
                         <div className="space-y-2 md:col-span-2">
-                          <Label htmlFor="allocationImageUrl">Tokenomics Chart/Image URL</Label>
+                          <Label htmlFor="allocationImageUrl">Tokenomics Allocation Chart URL</Label>
                           <Input
                             id="allocationImageUrl"
                             name="allocationImageUrl"
@@ -476,7 +477,21 @@ export default function CreateICO() {
                             placeholder="https://example.com/tokenomics-chart.png"
                           />
                           <p className="text-xs text-muted-foreground mt-1">
-                            Upload your tokenomics allocation and vesting chart to an image hosting service (e.g., Imgur, ImgBB) and paste the URL here
+                            Upload your tokenomics allocation chart to an image hosting service (e.g., Imgur, ImgBB) and paste the URL here
+                          </p>
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                          <Label htmlFor="vestingScheduleImageUrl">Vesting Schedule Chart URL</Label>
+                          <Input
+                            id="vestingScheduleImageUrl"
+                            name="vestingScheduleImageUrl"
+                            type="url"
+                            value={formData.vestingScheduleImageUrl}
+                            onChange={handleChange}
+                            placeholder="https://example.com/vesting-schedule-chart.png"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Upload your vesting schedule timeline chart to an image hosting service and paste the URL here
                           </p>
                         </div>
                       </div>

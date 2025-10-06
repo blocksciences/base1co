@@ -57,6 +57,7 @@ export interface DeploymentParams {
   seedInvestorsAllocation: string;
   vestingSchedule: string;
   allocationImageUrl: string;
+  vestingScheduleImageUrl: string;
   
   // Legal & Compliance
   jurisdictionCompliance: string;
