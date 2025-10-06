@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { AdminHeader } from "@/components/admin/AdminHeader";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { useListTokenDeployment } from "@/hooks/useListTokenDeployment";
 import { useAccount } from "wagmi";
 import { Loader2, Coins, Lock, Users, Droplets, Sprout, CheckCircle2, AlertCircle } from "lucide-react";
@@ -29,11 +30,14 @@ export default function DeployListToken() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <AdminHeader />
+    <div className="flex min-h-screen">
+      <AdminSidebar />
       
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto space-y-6">
+      <div className="flex-1">
+        <AdminHeader />
+        
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto space-y-6">
           <div>
             <h1 className="text-3xl font-bold mb-2">Deploy LIST Token Platform</h1>
             <p className="text-muted-foreground">
@@ -211,6 +215,7 @@ export default function DeployListToken() {
             </Card>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

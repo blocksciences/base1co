@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AdminHeader } from '@/components/admin/AdminHeader';
+import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { toast } from 'sonner';
 import { useWalletClient, useAccount } from 'wagmi';
 import { CheckCircle2, Loader2 } from 'lucide-react';
@@ -77,11 +78,14 @@ export default function QuickKYCApproval() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <AdminHeader />
+    <div className="flex min-h-screen">
+      <AdminSidebar />
       
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
+      <div className="flex-1">
+        <AdminHeader />
+        
+        <main className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -147,6 +151,7 @@ export default function QuickKYCApproval() {
           </Card>
         </div>
       </main>
+      </div>
     </div>
   );
 }
