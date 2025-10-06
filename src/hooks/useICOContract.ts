@@ -88,6 +88,41 @@ const ICO_ABI = [
     stateMutability: 'view',
     type: 'function',
   },
+  {
+    inputs: [],
+    name: 'finalizeSale',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'enableEmergencyMode',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'emergencyWithdrawETH',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'pause',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'unpause',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
 ] as const;
 
 const KYC_REGISTRY_ABI = [
@@ -357,6 +392,181 @@ export const useICOContract = (contractAddress: string) => {
     }
   };
 
+  /**
+   * Finalize the sale (admin only)
+   */
+  const finalizeSale = async (): Promise<boolean> => {
+    if (!walletClient || !publicClient || !address) {
+      toast.error('Please connect your wallet');
+      return false;
+    }
+
+    try {
+      toast.loading('Finalizing sale...', { id: 'finalize' });
+
+      const data = encodeFunctionData({
+        abi: ICO_ABI,
+        functionName: 'finalizeSale',
+        args: [],
+      });
+
+      const hash = await walletClient.sendTransaction({
+        to: contractAddress as `0x${string}`,
+        data,
+      } as any);
+
+      toast.loading('Waiting for confirmation...', { id: 'finalize' });
+      await publicClient.waitForTransactionReceipt({ hash });
+      
+      toast.success('Sale finalized successfully!', { id: 'finalize' });
+      return true;
+    } catch (error: any) {
+      console.error('Error finalizing sale:', error);
+      toast.error(error.message || 'Failed to finalize sale', { id: 'finalize' });
+      return false;
+    }
+  };
+
+  /**
+   * Enable emergency mode (admin only)
+   */
+  const enableEmergencyMode = async (): Promise<boolean> => {
+    if (!walletClient || !publicClient || !address) {
+      toast.error('Please connect your wallet');
+      return false;
+    }
+
+    try {
+      toast.loading('Enabling emergency mode...', { id: 'emergency' });
+
+      const data = encodeFunctionData({
+        abi: ICO_ABI,
+        functionName: 'enableEmergencyMode',
+        args: [],
+      });
+
+      const hash = await walletClient.sendTransaction({
+        to: contractAddress as `0x${string}`,
+        data,
+      } as any);
+
+      toast.loading('Waiting for confirmation...', { id: 'emergency' });
+      await publicClient.waitForTransactionReceipt({ hash });
+      
+      toast.success('Emergency mode enabled', { id: 'emergency' });
+      return true;
+    } catch (error: any) {
+      console.error('Error enabling emergency mode:', error);
+      toast.error(error.message || 'Failed to enable emergency mode', { id: 'emergency' });
+      return false;
+    }
+  };
+
+  /**
+   * Emergency withdraw ETH (admin only)
+   */
+  const emergencyWithdrawETH = async (): Promise<boolean> => {
+    if (!walletClient || !publicClient || !address) {
+      toast.error('Please connect your wallet');
+      return false;
+    }
+
+    try {
+      toast.loading('Withdrawing ETH...', { id: 'withdraw' });
+
+      const data = encodeFunctionData({
+        abi: ICO_ABI,
+        functionName: 'emergencyWithdrawETH',
+        args: [],
+      });
+
+      const hash = await walletClient.sendTransaction({
+        to: contractAddress as `0x${string}`,
+        data,
+      } as any);
+
+      toast.loading('Waiting for confirmation...', { id: 'withdraw' });
+      await publicClient.waitForTransactionReceipt({ hash });
+      
+      toast.success('ETH withdrawn successfully', { id: 'withdraw' });
+      return true;
+    } catch (error: any) {
+      console.error('Error withdrawing ETH:', error);
+      toast.error(error.message || 'Failed to withdraw ETH', { id: 'withdraw' });
+      return false;
+    }
+  };
+
+  /**
+   * Pause the contract (admin only)
+   */
+  const pauseContract = async (): Promise<boolean> => {
+    if (!walletClient || !publicClient || !address) {
+      toast.error('Please connect your wallet');
+      return false;
+    }
+
+    try {
+      toast.loading('Pausing contract...', { id: 'pause' });
+
+      const data = encodeFunctionData({
+        abi: ICO_ABI,
+        functionName: 'pause',
+        args: [],
+      });
+
+      const hash = await walletClient.sendTransaction({
+        to: contractAddress as `0x${string}`,
+        data,
+      } as any);
+
+      toast.loading('Waiting for confirmation...', { id: 'pause' });
+      await publicClient.waitForTransactionReceipt({ hash });
+      
+      toast.success('Contract paused', { id: 'pause' });
+      return true;
+    } catch (error: any) {
+      console.error('Error pausing contract:', error);
+      toast.error(error.message || 'Failed to pause contract', { id: 'pause' });
+      return false;
+    }
+  };
+
+  /**
+   * Unpause the contract (admin only)
+   */
+  const unpauseContract = async (): Promise<boolean> => {
+    if (!walletClient || !publicClient || !address) {
+      toast.error('Please connect your wallet');
+      return false;
+    }
+
+    try {
+      toast.loading('Unpausing contract...', { id: 'unpause' });
+
+      const data = encodeFunctionData({
+        abi: ICO_ABI,
+        functionName: 'unpause',
+        args: [],
+      });
+
+      const hash = await walletClient.sendTransaction({
+        to: contractAddress as `0x${string}`,
+        data,
+      } as any);
+
+      toast.loading('Waiting for confirmation...', { id: 'unpause' });
+      await publicClient.waitForTransactionReceipt({ hash });
+      
+      toast.success('Contract unpaused', { id: 'unpause' });
+      return true;
+    } catch (error: any) {
+      console.error('Error unpausing contract:', error);
+      toast.error(error.message || 'Failed to unpause contract', { id: 'unpause' });
+      return false;
+    }
+  };
+
   return {
     invest,
     claimRefund,
@@ -364,6 +574,11 @@ export const useICOContract = (contractAddress: string) => {
     getSaleInfo,
     checkKYCStatus,
     checkSaleStatus,
+    finalizeSale,
+    enableEmergencyMode,
+    emergencyWithdrawETH,
+    pauseContract,
+    unpauseContract,
     isConnected,
   };
 };

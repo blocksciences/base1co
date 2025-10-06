@@ -4,13 +4,41 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, ExternalLink, Download, Loader2 } from 'lucide-react';
+import { Search, ExternalLink, Download, Loader2, DollarSign, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 import { useTransactions } from '@/hooks/useAdminData';
+import { useProjects } from '@/hooks/useProjects';
+import { useICOContract } from '@/hooks/useICOContract';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export const AdminTransactions = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [showFinalizeDialog, setShowFinalizeDialog] = useState(false);
+  const [showEmergencyDialog, setShowEmergencyDialog] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  
   const { transactions, loading } = useTransactions();
+  const { data: projects = [] } = useProjects();
+  
+  const currentProject = projects.find(p => p.id === selectedProject);
+  const { 
+    finalizeSale, 
+    enableEmergencyMode, 
+    emergencyWithdrawETH,
+    pauseContract,
+    unpauseContract 
+  } = useICOContract(currentProject?.contractAddress || '');
   
   const filteredTransactions = transactions.filter(tx =>
     tx.from_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -34,6 +62,46 @@ export const AdminTransactions = () => {
 
   const avgTransaction = transactions24h > 0 ? volume24h / transactions24h : 0;
   const pendingCount = transactions.filter(tx => tx.status === 'pending').length;
+
+  const handleFinalizeSale = async () => {
+    setActionLoading(true);
+    try {
+      const success = await finalizeSale();
+      if (success) {
+        setShowFinalizeDialog(false);
+        toast.success('Sale finalized and funds withdrawn');
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleEmergencyWithdraw = async () => {
+    setActionLoading(true);
+    try {
+      await enableEmergencyMode();
+      const success = await emergencyWithdrawETH();
+      if (success) {
+        setShowEmergencyDialog(false);
+        toast.success('Emergency withdrawal completed');
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handlePauseContract = async (projectId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project?.contractAddress) return;
+    
+    setActionLoading(true);
+    try {
+      const contract = useICOContract(project.contractAddress);
+      await contract.pauseContract();
+    } finally {
+      setActionLoading(false);
+    }
+  };
   
   return (
     <div className="flex min-h-screen">
@@ -53,6 +121,64 @@ export const AdminTransactions = () => {
               Export CSV
             </Button>
           </div>
+          
+          {/* Project Fund Management */}
+          {projects.length > 0 && (
+            <Card className="glass p-6">
+              <h2 className="text-xl font-bold mb-4">Fund Management</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm text-muted-foreground mb-2 block">Select Project</label>
+                  <select
+                    className="w-full p-2 rounded-md bg-background border border-border"
+                    value={selectedProject || ''}
+                    onChange={(e) => setSelectedProject(e.target.value)}
+                  >
+                    <option value="">Choose a project...</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name} ({project.symbol})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {currentProject && (
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Raised:</span>
+                      <span className="font-semibold">{currentProject.raised} ETH</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Status:</span>
+                      <Badge variant={currentProject.status === 'live' ? 'default' : 'secondary'}>
+                        {currentProject.status}
+                      </Badge>
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button 
+                        onClick={() => setShowFinalizeDialog(true)}
+                        className="flex-1 gap-2"
+                        variant="default"
+                        disabled={actionLoading}
+                      >
+                        <DollarSign className="h-4 w-4" />
+                        Finalize & Withdraw
+                      </Button>
+                      <Button 
+                        onClick={() => setShowEmergencyDialog(true)}
+                        variant="destructive"
+                        size="icon"
+                        disabled={actionLoading}
+                      >
+                        <AlertTriangle className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
           
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -163,6 +289,48 @@ export const AdminTransactions = () => {
               </div>
             )}
           </Card>
+
+          {/* Finalize Sale Dialog */}
+          <AlertDialog open={showFinalizeDialog} onOpenChange={setShowFinalizeDialog}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Finalize Sale</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will finalize the sale for {currentProject?.name} and withdraw all funds to your wallet. 
+                  This action can only be performed after the sale has ended and if the soft cap was met.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleFinalizeSale} disabled={actionLoading}>
+                  {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Finalize Sale'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          {/* Emergency Withdraw Dialog */}
+          <AlertDialog open={showEmergencyDialog} onOpenChange={setShowEmergencyDialog}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Emergency Withdrawal</AlertDialogTitle>
+                <AlertDialogDescription className="text-destructive">
+                  WARNING: This will enable emergency mode and withdraw all ETH from the contract. 
+                  Users will be able to claim refunds after this action. Only use in case of critical issues.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleEmergencyWithdraw} 
+                  disabled={actionLoading}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Emergency Withdraw'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </main>
       </div>
     </div>
