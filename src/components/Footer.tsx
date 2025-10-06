@@ -47,9 +47,9 @@ export const Footer = () => {
               <Link to="/dashboard" className="block hover:text-primary transition-colors">
                 Dashboard
               </Link>
-              <a href="#" className="block hover:text-primary transition-colors">
+              <Link to="/documentation" className="block hover:text-primary transition-colors">
                 Documentation
-              </a>
+              </Link>
               <a href="#" className="block hover:text-primary transition-colors">
                 Support
               </a>

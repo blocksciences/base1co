@@ -31,6 +31,7 @@ import Analytics from "./pages/Analytics";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import CookiePolicy from "./pages/CookiePolicy";
+import Documentation from "./pages/Documentation";
 import NotFound from "./pages/NotFound";
 
 // Lazy loaded admin routes (reduces initial bundle by ~60%)
@@ -90,6 +91,7 @@ const AppContent = () => {
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/cookie-policy" element={<CookiePolicy />} />
+          <Route path="/documentation" element={<Documentation />} />
           
           {/* Admin Routes - Protected & Lazy Loaded */}
           <Route path="/admin" element={
