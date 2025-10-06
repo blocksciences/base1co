@@ -1,4 +1,5 @@
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import { AdvancedAnalytics } from "@/components/AdvancedAnalytics";
 
 const Analytics = () => {
@@ -16,6 +17,7 @@ const Analytics = () => {
           <AdvancedAnalytics />
         </div>
       </main>
+      <Footer />
     </div>
   );
 };

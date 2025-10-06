@@ -1,4 +1,5 @@
 import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -409,6 +410,8 @@ export const Dashboard = () => {
         }} 
         walletAddress={address || ''} 
       />
+      
+      <Footer />
     </div>
   );
 };

@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Footer } from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Shield, Lock, Clock, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
@@ -202,6 +203,8 @@ export default function ProjectTransparency() {
           )}
         </CardContent>
       </Card>
+      
+      <Footer />
     </div>
   );
 }

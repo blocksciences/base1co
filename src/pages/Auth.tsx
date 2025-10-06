@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Footer } from '@/components/Footer';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -150,6 +151,8 @@ export default function Auth() {
           </div>
         </div>
       </Card>
+      
+      <Footer />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
 import { useProject } from '@/hooks/useProjects';
 import { useParams, Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
@@ -614,6 +615,8 @@ export const ProjectDetail = () => {
           onInvest={handleInvest}
         />
       )}
+      
+      <Footer />
     </div>
   );
 };

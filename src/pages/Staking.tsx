@@ -1,4 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -445,6 +446,8 @@ export const Staking = () => {
           </Tabs>
         )}
       </div>
+      
+      <Footer />
     </div>
   );
 };

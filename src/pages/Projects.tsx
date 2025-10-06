@@ -1,4 +1,5 @@
 import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
 import { ProjectCard } from '@/components/ProjectCard';
 import { useProjects } from '@/hooks/useProjects';
 import { Button } from '@/components/ui/button';
@@ -354,6 +355,8 @@ export const Projects = () => {
           </TabsContent>
         </Tabs>
       </section>
+      
+      <Footer />
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import { ReferralDashboard } from "@/components/ReferralDashboard";
 import { useAccount } from "wagmi";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -22,6 +23,7 @@ const Referrals = () => {
           <ReferralDashboard />
         )}
       </main>
+      <Footer />
     </div>
   );
 };
