@@ -28,6 +28,9 @@ import LaunchICO from "./pages/LaunchICO";
 import ProjectTransparency from "./pages/ProjectTransparency";
 import Referrals from "./pages/Referrals";
 import Analytics from "./pages/Analytics";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import CookiePolicy from "./pages/CookiePolicy";
 import NotFound from "./pages/NotFound";
 
 // Lazy loaded admin routes (reduces initial bundle by ~60%)
@@ -84,6 +87,9 @@ const AppContent = () => {
           <Route path="/launch" element={<LaunchICO />} />
           <Route path="/referrals" element={<Referrals />} />
           <Route path="/analytics" element={<Analytics />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/cookie-policy" element={<CookiePolicy />} />
           
           {/* Admin Routes - Protected & Lazy Loaded */}
           <Route path="/admin" element={
