@@ -75,7 +75,9 @@ export default function CreateICO() {
     teamAllocation: '',
     ecosystemAllocation: '',
     liquidityAllocation: '',
+    seedInvestorsAllocation: '',
     vestingSchedule: '',
+    allocationImageUrl: '',
     
     // Legal & Compliance
     jurisdictionCompliance: '',
@@ -440,6 +442,18 @@ export default function CreateICO() {
                             required
                           />
                         </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="seedInvestorsAllocation">Seed Investors Allocation (%) *</Label>
+                          <Input
+                            id="seedInvestorsAllocation"
+                            name="seedInvestorsAllocation"
+                            type="number"
+                            value={formData.seedInvestorsAllocation}
+                            onChange={handleChange}
+                            placeholder="10"
+                            required
+                          />
+                        </div>
                         <div className="space-y-2 md:col-span-2">
                           <Label htmlFor="vestingSchedule">Vesting Schedule *</Label>
                           <Textarea
@@ -450,6 +464,20 @@ export default function CreateICO() {
                             placeholder="Team: 24-month vesting, 6-month cliff. Advisors: 12-month vesting..."
                             required
                           />
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                          <Label htmlFor="allocationImageUrl">Tokenomics Chart/Image URL</Label>
+                          <Input
+                            id="allocationImageUrl"
+                            name="allocationImageUrl"
+                            type="url"
+                            value={formData.allocationImageUrl}
+                            onChange={handleChange}
+                            placeholder="https://example.com/tokenomics-chart.png"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Upload your tokenomics allocation and vesting chart to an image hosting service (e.g., Imgur, ImgBB) and paste the URL here
+                          </p>
                         </div>
                       </div>
                     </div>

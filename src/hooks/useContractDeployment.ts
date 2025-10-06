@@ -54,7 +54,9 @@ export interface DeploymentParams {
   teamAllocation: string;
   ecosystemAllocation: string;
   liquidityAllocation: string;
+  seedInvestorsAllocation: string;
   vestingSchedule: string;
+  allocationImageUrl: string;
   
   // Legal & Compliance
   jurisdictionCompliance: string;
