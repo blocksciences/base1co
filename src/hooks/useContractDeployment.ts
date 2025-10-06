@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useAccount } from 'wagmi';
 
 export interface DeploymentParams {
+  // Token Details
   projectName: string;
   tokenSymbol: string;
   totalSupply: string;
@@ -15,6 +16,51 @@ export interface DeploymentParams {
   maxContribution: string;
   startDate: string;
   endDate: string;
+  
+  // Company Information
+  companyLegalName: string;
+  registrationNumber: string;
+  registrationCountry: string;
+  companyAddress: string;
+  businessEmail: string;
+  businessPhone: string;
+  
+  // Project Details
+  projectDescription: string;
+  problemStatement: string;
+  solution: string;
+  targetMarket: string;
+  useOfFunds: string;
+  
+  // Team Information
+  founderName: string;
+  founderRole: string;
+  founderLinkedin: string;
+  founderBio: string;
+  teamSize: string;
+  advisors: string;
+  
+  // Social Links
+  website: string;
+  whitepaper: string;
+  twitter: string;
+  telegram: string;
+  discord: string;
+  medium: string;
+  github: string;
+  
+  // Tokenomics
+  publicSaleAllocation: string;
+  teamAllocation: string;
+  ecosystemAllocation: string;
+  liquidityAllocation: string;
+  vestingSchedule: string;
+  
+  // Legal & Compliance
+  jurisdictionCompliance: string;
+  auditReport: string;
+  kycProvider: string;
+  legalOpinion: string;
 }
 
 export const useContractDeployment = () => {
