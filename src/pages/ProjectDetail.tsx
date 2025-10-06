@@ -197,37 +197,91 @@ export const ProjectDetail = () => {
               </p>
               
               {/* Social Links */}
-              <div className="flex items-center gap-3">
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="gap-2"
-                  onClick={() => handleSocialLink('Website', project.socialLinks?.website)}
-                >
-                  <Globe className="h-4 w-4" />
-                  Website
-                  <ExternalLink className="h-3 w-3" />
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="gap-2"
-                  onClick={() => handleSocialLink('Twitter', project.socialLinks?.twitter)}
-                >
-                  <Twitter className="h-4 w-4" />
-                  Twitter
-                  <ExternalLink className="h-3 w-3" />
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="gap-2"
-                  onClick={() => handleSocialLink('Whitepaper', project.socialLinks?.whitepaper)}
-                >
-                  <FileText className="h-4 w-4" />
-                  Whitepaper
-                  <ExternalLink className="h-3 w-3" />
-                </Button>
+              <div className="flex flex-wrap items-center gap-3">
+                {(project as any).website && (
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="gap-2"
+                    onClick={() => window.open((project as any).website, '_blank')}
+                  >
+                    <Globe className="h-4 w-4" />
+                    Website
+                    <ExternalLink className="h-3 w-3" />
+                  </Button>
+                )}
+                {(project as any).whitepaper && (
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="gap-2"
+                    onClick={() => window.open((project as any).whitepaper, '_blank')}
+                  >
+                    <FileText className="h-4 w-4" />
+                    Whitepaper
+                    <ExternalLink className="h-3 w-3" />
+                  </Button>
+                )}
+                {(project as any).twitter && (
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="gap-2"
+                    onClick={() => window.open((project as any).twitter, '_blank')}
+                  >
+                    <Twitter className="h-4 w-4" />
+                    Twitter
+                    <ExternalLink className="h-3 w-3" />
+                  </Button>
+                )}
+                {(project as any).telegram && (
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="gap-2"
+                    onClick={() => window.open((project as any).telegram, '_blank')}
+                  >
+                    <span className="text-sm">💬</span>
+                    Telegram
+                    <ExternalLink className="h-3 w-3" />
+                  </Button>
+                )}
+                {(project as any).discord && (
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="gap-2"
+                    onClick={() => window.open((project as any).discord, '_blank')}
+                  >
+                    <span className="text-sm">🎮</span>
+                    Discord
+                    <ExternalLink className="h-3 w-3" />
+                  </Button>
+                )}
+                {(project as any).medium && (
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="gap-2"
+                    onClick={() => window.open((project as any).medium, '_blank')}
+                  >
+                    <span className="text-sm">M</span>
+                    Medium
+                    <ExternalLink className="h-3 w-3" />
+                  </Button>
+                )}
+                {(project as any).github && (
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="gap-2"
+                    onClick={() => window.open((project as any).github, '_blank')}
+                  >
+                    <span className="text-sm">⚙️</span>
+                    GitHub
+                    <ExternalLink className="h-3 w-3" />
+                  </Button>
+                )}
               </div>
             </div>
             
