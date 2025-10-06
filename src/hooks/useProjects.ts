@@ -88,6 +88,7 @@ export const useProject = (id: string) => {
       // If found in database, transform and return
       if (data) {
         return {
+          ...data,
           id: data.id,
           name: data.name,
           symbol: data.symbol,
@@ -100,19 +101,21 @@ export const useProject = (id: string) => {
           minContribution: Number(data.min_contribution || 0.01),
           maxContribution: Number(data.max_contribution || 10),
           participants: data.participants_count || 0,
-          price: '0.05 ETH',
+          price: data.token_price ? `${data.token_price} ETH` : '0.05 ETH',
           status: data.status as 'upcoming' | 'live' | 'ended' | 'success',
           endsIn: calculateTimeRemaining(data.end_date),
           endDate: data.end_date ? new Date(data.end_date) : undefined,
+          startDate: data.start_date ? new Date(data.start_date) : undefined,
           network: 'Base',
           contractAddress: data.contract_address || '0x0000000000000000000000000000000000000000',
+          tokenAddress: data.token_address,
           socialLinks: {
-            website: undefined,
-            twitter: undefined,
-            telegram: undefined,
-            discord: undefined,
-            medium: undefined,
-            whitepaper: undefined,
+            website: data.website,
+            twitter: data.twitter,
+            telegram: data.telegram,
+            discord: data.discord,
+            medium: data.medium,
+            whitepaper: data.whitepaper,
           },
         };
       }
