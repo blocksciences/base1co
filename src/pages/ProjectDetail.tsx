@@ -351,9 +351,9 @@ export const ProjectDetail = () => {
                   </div>
                   
                   {/* Sale Start/End Times */}
-                  <div className="space-y-3 pt-2 border-t border-border/30">
+                  <div className="space-y-4 pt-2 border-t border-border/30">
                     {project.startDate && (
-                      <div className="space-y-1">
+                      <div className="space-y-2">
                         <div className="flex items-center gap-2 text-sm">
                           <Calendar className="h-4 w-4 text-green-500" />
                           <span className="text-muted-foreground">Sale Starts:</span>
@@ -362,15 +362,15 @@ export const ProjectDetail = () => {
                           </span>
                         </div>
                         {new Date(project.startDate) > new Date() && (
-                          <div className="ml-6 text-sm text-muted-foreground">
-                            <span className="mr-2">Starts in:</span>
-                            <CountdownTimer endDate={project.startDate} compact />
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-2">Starts in:</p>
+                            <CountdownTimer endDate={project.startDate} />
                           </div>
                         )}
                       </div>
                     )}
                     {project.endDate && (
-                      <div className="space-y-1">
+                      <div className="space-y-2">
                         <div className="flex items-center gap-2 text-sm">
                           <Calendar className="h-4 w-4 text-red-500" />
                           <span className="text-muted-foreground">Sale Ends:</span>
@@ -379,9 +379,9 @@ export const ProjectDetail = () => {
                           </span>
                         </div>
                         {new Date(project.endDate) > new Date() && new Date(project.startDate || 0) <= new Date() && (
-                          <div className="ml-6 text-sm text-muted-foreground">
-                            <span className="mr-2">Ends in:</span>
-                            <CountdownTimer endDate={project.endDate} compact />
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-2">Ends in:</p>
+                            <CountdownTimer endDate={project.endDate} />
                           </div>
                         )}
                       </div>
