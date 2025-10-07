@@ -109,6 +109,18 @@ export const InvestmentModal = ({
                   <span>Min: {minContribution.toFixed(4)} ETH</span>
                   <span>Max: {maxContribution.toFixed(4)} ETH</span>
                 </div>
+                {amount && parseFloat(amount) < minContribution && (
+                  <div className="flex items-center gap-2 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>Amount is below minimum ({minContribution.toFixed(4)} ETH)</span>
+                  </div>
+                )}
+                {amount && parseFloat(amount) > maxContribution && (
+                  <div className="flex items-center gap-2 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>Amount exceeds maximum ({maxContribution.toFixed(4)} ETH)</span>
+                  </div>
+                )}
               </div>
 
               {amount && parseFloat(amount) > 0 && (
