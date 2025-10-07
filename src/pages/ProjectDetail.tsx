@@ -299,13 +299,13 @@ export const ProjectDetail = () => {
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Hard Cap</p>
                     <p className="text-sm font-semibold">
-                      {blockchainLoading ? <Loader2 className="h-3 w-3 animate-spin inline" /> : `${(saleInfo?.hardCap || goal).toFixed(2)} ETH`}
+                      {blockchainLoading ? <Loader2 className="h-3 w-3 animate-spin inline" /> : `${(saleInfo?.hardCap || goal).toFixed(4)} ETH`}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Soft Cap</p>
                     <p className="text-sm font-semibold">
-                      {blockchainLoading ? <Loader2 className="h-3 w-3 animate-spin inline" /> : `${(saleInfo?.softCap || goal * 0.5).toFixed(2)} ETH`}
+                      {blockchainLoading ? <Loader2 className="h-3 w-3 animate-spin inline" /> : `${(saleInfo?.softCap || goal * 0.5).toFixed(4)} ETH`}
                     </p>
                   </div>
                   <div className="col-span-2 pt-2 border-t border-border/30">
@@ -314,7 +314,7 @@ export const ProjectDetail = () => {
                       {blockchainLoading ? (
                         <Loader2 className="h-3 w-3 animate-spin inline" />
                       ) : (
-                        `${(saleInfo?.minContribution || 0.01).toFixed(4)} - ${(saleInfo?.maxContribution || 10).toFixed(2)} ETH`
+                        `${(saleInfo?.minContribution || 0.01).toFixed(4)} - ${(saleInfo?.maxContribution || 10).toFixed(4)} ETH`
                       )}
                     </p>
                   </div>
