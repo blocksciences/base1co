@@ -143,8 +143,7 @@ async function main() {
           kycAddress,
           vestingAddress,
           liquidityAddress,
-          deployer.address,
-          { nonce: nonce++ }
+          deployer.address
         );
         const receipt = await registerTx.wait();
         
