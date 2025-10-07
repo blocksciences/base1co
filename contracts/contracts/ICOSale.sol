@@ -30,13 +30,15 @@ contract ICOSale is Ownable, ReentrancyGuard, Pausable {
     
     mapping(address => uint256) public contributions;
     mapping(address => uint256) public tokensPurchased;
+    mapping(address => uint256) public tokensClaimed;
     address[] public contributors;
     
     bool public finalized;
     bool public softCapReached;
-    bool public emergencyMode; // NEW: Emergency mode flag
+    bool public emergencyMode;
     
     event TokensPurchased(address indexed buyer, uint256 ethAmount, uint256 tokenAmount);
+    event TokensClaimed(address indexed buyer, uint256 tokenAmount);
     event Refund(address indexed buyer, uint256 ethAmount);
     event SaleFinalized(uint256 totalRaised);
     event EmergencyWithdraw(address indexed owner, uint256 amount);
@@ -110,13 +112,26 @@ contract ICOSale is Ownable, ReentrancyGuard, Pausable {
             softCapReached = true;
         }
         
-        require(token.transfer(msg.sender, tokenAmount), "Token transfer failed");
-        
+        // DO NOT transfer tokens immediately - they will be claimed after sale succeeds
         emit TokensPurchased(msg.sender, contribution, tokenAmount);
         
         if (refund > 0) {
             payable(msg.sender).transfer(refund);
         }
+    }
+    
+    function claimTokens() external nonReentrant {
+        require(finalized, "Sale not finalized");
+        require(softCapReached, "Soft cap not reached");
+        
+        uint256 tokenAmount = tokensPurchased[msg.sender] - tokensClaimed[msg.sender];
+        require(tokenAmount > 0, "No tokens to claim");
+        
+        tokensClaimed[msg.sender] += tokenAmount;
+        
+        require(token.transfer(msg.sender, tokenAmount), "Token transfer failed");
+        
+        emit TokensClaimed(msg.sender, tokenAmount);
     }
     
     function claimRefund() external nonReentrant {
@@ -192,6 +207,17 @@ contract ICOSale is Ownable, ReentrancyGuard, Pausable {
     
     function getContributorCount() external view returns (uint256) {
         return contributors.length;
+    }
+    
+    function getUserTokenInfo(address user) external view returns (
+        uint256 purchased,
+        uint256 claimed,
+        uint256 claimable
+    ) {
+        purchased = tokensPurchased[user];
+        claimed = tokensClaimed[user];
+        claimable = (finalized && softCapReached) ? (purchased - claimed) : 0;
+        return (purchased, claimed, claimable);
     }
     
     function getSaleInfo() external view returns (

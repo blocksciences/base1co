@@ -20,6 +20,24 @@ const ICO_ABI = [
   },
   {
     inputs: [],
+    name: 'claimTokens',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'user', type: 'address' }],
+    name: 'getUserTokenInfo',
+    outputs: [
+      { internalType: 'uint256', name: 'purchased', type: 'uint256' },
+      { internalType: 'uint256', name: 'claimed', type: 'uint256' },
+      { internalType: 'uint256', name: 'claimable', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
     name: 'kycRegistry',
     outputs: [{ internalType: 'address', name: '', type: 'address' }],
     stateMutability: 'view',
@@ -182,7 +200,7 @@ export const useICOContract = (contractAddress: string) => {
         await publicClient.waitForTransactionReceipt({ hash });
       }
 
-      toast.success(`Successfully invested ${amountInEth} ETH!`, { id: 'invest' });
+      toast.success(`Investment successful! Tokens will be claimable after sale ends.`, { id: 'invest' });
       return true;
     } catch (error: any) {
       console.error('Investment error:', error);
@@ -193,6 +211,52 @@ export const useICOContract = (contractAddress: string) => {
         toast.error('Insufficient funds in wallet', { id: 'invest' });
       } else {
         toast.error('Investment failed. Please try again.', { id: 'invest' });
+      }
+      
+      return false;
+    }
+  };
+
+  const claimTokens = async () => {
+    if (!isConnected || !address) {
+      toast.error('Please connect your wallet first');
+      return false;
+    }
+
+    if (!walletClient) {
+      toast.error('Wallet client not available');
+      return false;
+    }
+
+    try {
+      toast.loading('Preparing token claim...', { id: 'claimTokens' });
+
+      const data = encodeFunctionData({
+        abi: ICO_ABI,
+        functionName: 'claimTokens',
+        args: [],
+      });
+
+      const hash = await walletClient.sendTransaction({
+        to: contractAddress as `0x${string}`,
+        data,
+      } as any);
+
+      toast.loading('Claim submitted. Waiting for confirmation...', { id: 'claimTokens' });
+
+      if (publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash });
+      }
+
+      toast.success('Tokens claimed successfully!', { id: 'claimTokens' });
+      return true;
+    } catch (error: any) {
+      console.error('Claim tokens error:', error);
+      
+      if (error.message?.includes('User rejected')) {
+        toast.error('Transaction rejected by user', { id: 'claimTokens' });
+      } else {
+        toast.error('Token claim failed. Please try again.', { id: 'claimTokens' });
       }
       
       return false;
@@ -567,10 +631,38 @@ export const useICOContract = (contractAddress: string) => {
     }
   };
 
+  const getUserTokenInfo = async () => {
+    if (!isConnected || !address || !publicClient) {
+      return null;
+    }
+
+    try {
+      const result = await publicClient.readContract({
+        address: contractAddress as `0x${string}`,
+        abi: ICO_ABI,
+        functionName: 'getUserTokenInfo',
+        args: [address],
+      } as any);
+
+      const [purchased, claimed, claimable] = result as [bigint, bigint, bigint];
+
+      return {
+        purchased: formatEther(purchased),
+        claimed: formatEther(claimed),
+        claimable: formatEther(claimable),
+      };
+    } catch (error) {
+      console.error('Error fetching user token info:', error);
+      return null;
+    }
+  };
+
   return {
     invest,
+    claimTokens,
     claimRefund,
     getUserContribution,
+    getUserTokenInfo,
     getSaleInfo,
     checkKYCStatus,
     checkSaleStatus,
