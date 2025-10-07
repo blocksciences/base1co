@@ -48,7 +48,7 @@ export const InvestmentModal = ({
       return;
     }
     if (amountNum > maxContribution) {
-      toast.error(`Maximum contribution is ${maxContribution.toFixed(2)} ETH`);
+      toast.error(`Maximum contribution is ${maxContribution.toFixed(4)} ETH`);
       return;
     }
     setStep('confirm');
@@ -97,7 +97,7 @@ export const InvestmentModal = ({
                 </label>
                 <Input
                   type="number"
-                  placeholder={`${minContribution.toFixed(4)} - ${maxContribution.toFixed(2)} ETH`}
+                  placeholder={`${minContribution.toFixed(4)} - ${maxContribution.toFixed(4)} ETH`}
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   className="h-12 text-lg"
@@ -107,7 +107,7 @@ export const InvestmentModal = ({
                 />
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>Min: {minContribution.toFixed(4)} ETH</span>
-                  <span>Max: {maxContribution.toFixed(2)} ETH</span>
+                  <span>Max: {maxContribution.toFixed(4)} ETH</span>
                 </div>
               </div>
 
