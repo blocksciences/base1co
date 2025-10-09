@@ -6,11 +6,11 @@ export const useKYCStatus = () => {
   const { address, isConnected } = useAccount();
   const [isKYCApproved, setIsKYCApproved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [checkTrigger, setCheckTrigger] = useState(0);
 
   useEffect(() => {
     const checkKYCStatus = async () => {
       if (!isConnected || !address) {
-        console.log('Not connected or no address');
         setIsKYCApproved(false);
         setIsLoading(false);
         return;
@@ -18,27 +18,26 @@ export const useKYCStatus = () => {
 
       setIsLoading(true);
       try {
-        const normalizedAddress = address.toLowerCase();
-        console.log('Checking KYC for address:', address, 'normalized:', normalizedAddress);
+        console.log('[KYC Check] Checking for address:', address);
         
-        // Check database for KYC approval using ilike for case-insensitive comparison
+        // Use text filter with exact match, case insensitive
         const { data: kycData, error } = await supabase
           .from('kyc_submissions')
           .select('status, wallet_address')
-          .ilike('wallet_address', normalizedAddress)
-          .eq('status', 'approved')
-          .maybeSingle();
+          .filter('wallet_address', 'ilike', address)
+          .filter('status', 'eq', 'approved')
+          .limit(1);
 
         if (error) {
-          console.error('Error checking KYC:', error);
+          console.error('[KYC Check] Error:', error);
+          setIsKYCApproved(false);
+        } else {
+          const approved = kycData && kycData.length > 0;
+          console.log('[KYC Check] Result:', { found: kycData?.length || 0, approved });
+          setIsKYCApproved(approved);
         }
-
-        console.log('KYC check result:', kycData);
-        const approved = !!kycData;
-        console.log('KYC approved:', approved);
-        setIsKYCApproved(approved);
       } catch (error) {
-        console.error('Error checking KYC status:', error);
+        console.error('[KYC Check] Exception:', error);
         setIsKYCApproved(false);
       } finally {
         setIsLoading(false);
@@ -47,10 +46,18 @@ export const useKYCStatus = () => {
 
     checkKYCStatus();
 
-    // Set up realtime subscription to watch for KYC changes
+    // Listen for custom events
+    const handleKYCChange = () => {
+      console.log('[KYC Check] Custom event triggered, re-checking...');
+      setCheckTrigger(prev => prev + 1);
+    };
+    
+    window.addEventListener('kyc-status-changed', handleKYCChange);
+
+    // Set up realtime subscription for instant updates
     if (address) {
       const channel = supabase
-        .channel('kyc-changes')
+        .channel('kyc-status-updates')
         .on(
           'postgres_changes',
           {
@@ -59,18 +66,22 @@ export const useKYCStatus = () => {
             table: 'kyc_submissions'
           },
           (payload) => {
-            console.log('KYC status changed:', payload);
-            // Re-check KYC when any change happens
-            checkKYCStatus();
+            console.log('[KYC Realtime] Change detected:', payload);
+            setCheckTrigger(prev => prev + 1);
           }
         )
         .subscribe();
 
       return () => {
+        window.removeEventListener('kyc-status-changed', handleKYCChange);
         supabase.removeChannel(channel);
       };
     }
-  }, [address, isConnected]);
+
+    return () => {
+      window.removeEventListener('kyc-status-changed', handleKYCChange);
+    };
+  }, [address, isConnected, checkTrigger]);
 
   return { isKYCApproved, isLoading };
 };

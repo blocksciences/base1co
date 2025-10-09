@@ -74,6 +74,10 @@ export const KYCModal = ({ open, onOpenChange, walletAddress }: KYCModalProps) =
 
       toast.success('KYC application submitted successfully');
       onOpenChange(false);
+      
+      // Trigger a custom event to notify other components
+      window.dispatchEvent(new CustomEvent('kyc-status-changed'));
+      
       setFormData({
         fullName: '',
         email: '',
