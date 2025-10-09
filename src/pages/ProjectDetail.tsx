@@ -22,6 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { KYCModal } from '@/components/KYCModal';
 import { InvestmentModal } from '@/components/InvestmentModal';
 import { CountdownTimer } from '@/components/CountdownTimer';
+import { useKYCStatus } from '@/hooks/useKYCStatus';
 
 // Schema will be validated dynamically with actual contract values
 
@@ -31,39 +32,30 @@ export const ProjectDetail = () => {
   const { isConnected, address } = useAccount();
   const [isInvesting, setIsInvesting] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
-  const [isKYCApproved, setIsKYCApproved] = useState(false);
-  const [checkingKYC, setCheckingKYC] = useState(false);
   const [saleStatus, setSaleStatus] = useState({ hasStarted: false, hasEnded: false, canInvest: false });
   const [showKYCModal, setShowKYCModal] = useState(false);
   const [showInvestModal, setShowInvestModal] = useState(false);
   
-  const { invest, claimRefund, checkKYCStatus, checkSaleStatus } = useICOContract(project?.contractAddress || '');
+  const { invest, claimRefund, checkSaleStatus } = useICOContract(project?.contractAddress || '');
   const { saleInfo, isLoading: blockchainLoading } = useProjectBlockchainData(project?.contractAddress || null);
+  const { isKYCApproved, isLoading: checkingKYC } = useKYCStatus();
   
-  // Check KYC and sale status when wallet connects or contract changes
+  // Check sale status when wallet connects or contract changes
   useEffect(() => {
-    const checkStatuses = async () => {
+    const checkStatus = async () => {
       if (!isConnected || !address || !project?.contractAddress) {
-        setIsKYCApproved(false);
         return;
       }
 
-      setCheckingKYC(true);
       try {
-        const [kycStatus, status] = await Promise.all([
-          checkKYCStatus(),
-          checkSaleStatus()
-        ]);
-        setIsKYCApproved(kycStatus);
+        const status = await checkSaleStatus();
         setSaleStatus(status);
       } catch (error) {
-        console.error('Error checking statuses:', error);
-      } finally {
-        setCheckingKYC(false);
+        console.error('Error checking sale status:', error);
       }
     };
 
-    checkStatuses();
+    checkStatus();
   }, [isConnected, address, project?.contractAddress]);
   
   const handleInvest = async (amount: string): Promise<boolean> => {
