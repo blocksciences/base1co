@@ -122,11 +122,10 @@ export function useUserKYC() {
         .select('status')
         .eq('wallet_address', address)
         .order('submitted_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
 
-      if (error && error.code !== 'PGRST116') throw error;
-      setKycStatus(data?.status || 'not_submitted');
+      if (error) throw error;
+      setKycStatus(data?.[0]?.status || 'not_submitted');
     } catch (err: any) {
       console.error('Error fetching KYC status:', err);
     } finally {
