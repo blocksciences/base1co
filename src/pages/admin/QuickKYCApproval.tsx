@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,8 +7,10 @@ import { AdminHeader } from '@/components/admin/AdminHeader';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { toast } from 'sonner';
 import { useWalletClient, useAccount } from 'wagmi';
-import { CheckCircle2, Loader2 } from 'lucide-react';
+import { CheckCircle2, Loader2, AlertCircle, Copy } from 'lucide-react';
 import { encodeFunctionData } from 'viem';
+import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const KYC_REGISTRY_ABI = [
   {
@@ -27,8 +29,39 @@ export default function QuickKYCApproval() {
   const [kycRegistryAddress, setKycRegistryAddress] = useState('');
   const [walletToApprove, setWalletToApprove] = useState('');
   const [isApproving, setIsApproving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { data: walletClient } = useWalletClient();
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
+
+  // Auto-load KYC Registry address from database
+  useEffect(() => {
+    const loadKYCRegistry = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .select('kyc_registry_address')
+          .not('kyc_registry_address', 'is', null)
+          .limit(1)
+          .single();
+
+        if (error) throw error;
+
+        if (data?.kyc_registry_address) {
+          setKycRegistryAddress(data.kyc_registry_address);
+          toast.success('KYC Registry address loaded');
+        } else {
+          toast.error('No KYC Registry found in database');
+        }
+      } catch (error: any) {
+        console.error('Error loading KYC Registry:', error);
+        toast.error('Failed to load KYC Registry address');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadKYCRegistry();
+  }, []);
 
   const handleApprove = async () => {
     if (!walletClient || !isConnected) {
@@ -65,9 +98,11 @@ export default function QuickKYCApproval() {
         data,
       } as any);
 
-      toast.success('KYC approval submitted! Tx: ' + hash.slice(0, 10) + '...');
+      toast.success('✅ KYC APPROVED ON-CHAIN! Tx: ' + hash.slice(0, 10) + '...', {
+        duration: 8000
+      });
       
-      // Clear form
+      // Clear wallet input
       setWalletToApprove('');
     } catch (error: any) {
       console.error('KYC approval error:', error);
@@ -97,31 +132,77 @@ export default function QuickKYCApproval() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="kycRegistry">KYC Registry Contract Address</Label>
-                <Input
-                  id="kycRegistry"
-                  placeholder="0x..."
-                  value={kycRegistryAddress}
-                  onChange={(e) => setKycRegistryAddress(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Find this in your deployment success screen
-                </p>
-              </div>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              ) : (
+                <>
+                  <Alert className="border-blue-500/50 bg-blue-500/10">
+                    <AlertCircle className="h-4 w-4 text-blue-500" />
+                    <AlertDescription className="text-sm">
+                      <strong>Connected Wallet:</strong> {address ? `${address.slice(0, 10)}...${address.slice(-8)}` : 'Not connected'}
+                      <br />
+                      <strong>KYC Registry:</strong> {kycRegistryAddress ? `${kycRegistryAddress.slice(0, 10)}...${kycRegistryAddress.slice(-8)}` : 'Not found'}
+                    </AlertDescription>
+                  </Alert>
 
-              <div className="space-y-2">
-                <Label htmlFor="wallet">Wallet Address to Approve</Label>
-                <Input
-                  id="wallet"
-                  placeholder="0x..."
-                  value={walletToApprove}
-                  onChange={(e) => setWalletToApprove(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  The wallet that needs KYC approval to invest
-                </p>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="kycRegistry">KYC Registry Contract Address</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="kycRegistry"
+                        placeholder="0x..."
+                        value={kycRegistryAddress}
+                        onChange={(e) => setKycRegistryAddress(e.target.value)}
+                        className="flex-1"
+                        readOnly
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          navigator.clipboard.writeText(kycRegistryAddress);
+                          toast.success('Address copied');
+                        }}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-success">
+                      ✓ Auto-loaded from database
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="wallet">Wallet Address to Approve</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="wallet"
+                        placeholder="0x..."
+                        value={walletToApprove}
+                        onChange={(e) => setWalletToApprove(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          if (address) {
+                            setWalletToApprove(address);
+                            toast.success('Your wallet address filled');
+                          }
+                        }}
+                        disabled={!address}
+                      >
+                        Use My Wallet
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      The wallet that needs KYC approval to invest
+                    </p>
+                  </div>
+                </>
+              )}
 
               <Button 
                 onClick={handleApprove} 
