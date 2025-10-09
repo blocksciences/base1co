@@ -191,13 +191,20 @@ export const useICOContract = (contractAddress: string) => {
         to: contractAddress as `0x${string}`,
         value: valueInWei,
         data,
+        gas: 500000n, // Explicit gas limit
       } as any);
 
       toast.loading('Transaction submitted. Waiting for confirmation...', { id: 'invest' });
 
       // Wait for transaction confirmation
       if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash });
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        
+        // Check if transaction was successful
+        if (receipt.status === 'reverted') {
+          toast.error('Transaction reverted. Check sale status, KYC, and contribution limits.', { id: 'invest' });
+          return false;
+        }
       }
 
       toast.success(`Investment successful! Tokens will be claimable after sale ends.`, { id: 'invest' });
@@ -209,8 +216,16 @@ export const useICOContract = (contractAddress: string) => {
         toast.error('Transaction rejected by user', { id: 'invest' });
       } else if (error.message?.includes('insufficient funds')) {
         toast.error('Insufficient funds in wallet', { id: 'invest' });
+      } else if (error.message?.includes('Not KYC approved')) {
+        toast.error('KYC approval required to invest', { id: 'invest' });
+      } else if (error.message?.includes('Insufficient tokens in sale')) {
+        toast.error('Sale contract has insufficient tokens. Contact project team.', { id: 'invest' });
+      } else if (error.message?.includes('Sale not active')) {
+        toast.error('Sale is not currently active', { id: 'invest' });
+      } else if (error.message?.includes('Exceeds maximum')) {
+        toast.error('Investment exceeds maximum allowed per wallet', { id: 'invest' });
       } else {
-        toast.error('Investment failed. Please try again.', { id: 'invest' });
+        toast.error(error.shortMessage || error.message || 'Transaction failed. Please try again.', { id: 'invest' });
       }
       
       return false;

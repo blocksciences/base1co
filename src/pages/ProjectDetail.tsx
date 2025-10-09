@@ -121,7 +121,7 @@ export const ProjectDetail = () => {
           amount_eth: parseFloat(amount),
           amount_usd: parseFloat(amount) * 2500,
           tokens_received: tokensReceived,
-          status: 'pending', // Changed to pending - tokens not yet claimed
+          status: 'active', // Active = purchased but not yet claimed
         });
 
       if (error) throw error;
