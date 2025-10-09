@@ -235,10 +235,10 @@ export const InvestmentModal = ({
               
               <div className="space-y-2">
                 <p className="text-lg font-semibold">
-                  You bought {tokensToReceive} {projectSymbol} for {amount} ETH
+                  You purchased {tokensToReceive} {projectSymbol} for {amount} ETH
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Tokens have been sent to your wallet
+                  Tokens will be claimable after the sale ends successfully
                 </p>
               </div>
 

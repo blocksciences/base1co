@@ -42,7 +42,7 @@ export const ProjectDetail = () => {
   const [showKYCModal, setShowKYCModal] = useState(false);
   const [showInvestModal, setShowInvestModal] = useState(false);
   
-  const { invest, claimRefund, checkSaleStatus } = useICOContract(project?.contractAddress || '');
+  const { invest, claimTokens, claimRefund, checkSaleStatus } = useICOContract(project?.contractAddress || '');
   const { saleInfo, isLoading: blockchainLoading } = useProjectBlockchainData(project?.contractAddress || null);
   const { isKYCApproved, isLoading: checkingKYC } = useKYCStatus();
   
@@ -121,7 +121,7 @@ export const ProjectDetail = () => {
           amount_eth: parseFloat(amount),
           amount_usd: parseFloat(amount) * 2500,
           tokens_received: tokensReceived,
-          status: 'active',
+          status: 'pending', // Changed to pending - tokens not yet claimed
         });
 
       if (error) throw error;
@@ -145,9 +145,20 @@ export const ProjectDetail = () => {
 
     setIsClaiming(true);
     try {
-      // Tokens are transferred immediately during buyTokens()
-      // This should only be visible if soft cap wasn't reached (for refunds)
-      toast.info('Tokens are automatically transferred when you invest. No claim needed!');
+      const success = await claimTokens();
+      if (success) {
+        // Update investment status to claimed
+        await supabase
+          .from('user_investments')
+          .update({ status: 'claimed' })
+          .eq('wallet_address', address)
+          .eq('project_id', project!.id);
+          
+        toast.success('Tokens claimed successfully!');
+      }
+    } catch (error: any) {
+      console.error('Claim error:', error);
+      toast.error(error.message || 'Failed to claim tokens');
     } finally {
       setIsClaiming(false);
     }
