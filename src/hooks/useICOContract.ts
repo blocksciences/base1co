@@ -38,6 +38,13 @@ const ICO_ABI = [
   },
   {
     inputs: [],
+    name: 'token',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
     name: 'kycRegistry',
     outputs: [{ internalType: 'address', name: '', type: 'address' }],
     stateMutability: 'view',
@@ -143,6 +150,16 @@ const ICO_ABI = [
   },
 ] as const;
 
+const ERC20_ABI = [
+  {
+    inputs: [{ internalType: 'address', name: 'account', type: 'address' }],
+    name: 'balanceOf',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const;
+
 const KYC_REGISTRY_ABI = [
   {
     inputs: [{ internalType: 'address', name: 'user', type: 'address' }],
@@ -164,7 +181,7 @@ export const useICOContract = (contractAddress: string) => {
       return false;
     }
 
-    if (!walletClient) {
+    if (!walletClient || !publicClient) {
       toast.error('Wallet client not available');
       return false;
     }
@@ -180,6 +197,36 @@ export const useICOContract = (contractAddress: string) => {
 
       toast.loading('Preparing transaction...', { id: 'invest' });
 
+      // Simulate transaction first to catch revert reason
+      try {
+        await publicClient.simulateContract({
+          address: contractAddress as `0x${string}`,
+          abi: ICO_ABI,
+          functionName: 'buyTokens',
+          account: address,
+          value: valueInWei,
+        });
+      } catch (simError: any) {
+        console.error('[Invest] Simulation failed:', simError);
+        
+        // Parse revert reason
+        const reason = simError.message || simError.shortMessage || '';
+        if (reason.includes('Not KYC approved')) {
+          toast.error('KYC approval required. Please complete KYC first.', { id: 'invest' });
+        } else if (reason.includes('Insufficient tokens')) {
+          toast.error('Sale contract has insufficient tokens. Contact project team.', { id: 'invest' });
+        } else if (reason.includes('Below minimum')) {
+          toast.error('Amount below minimum contribution', { id: 'invest' });
+        } else if (reason.includes('Exceeds maximum')) {
+          toast.error('Amount exceeds maximum contribution limit', { id: 'invest' });
+        } else if (reason.includes('paused')) {
+          toast.error('Sale is currently paused', { id: 'invest' });
+        } else {
+          toast.error(`Transaction would fail: ${reason}`, { id: 'invest' });
+        }
+        return false;
+      }
+
       // Encode the buyTokens() function call
       const data = encodeFunctionData({
         abi: ICO_ABI,
@@ -191,41 +238,29 @@ export const useICOContract = (contractAddress: string) => {
         to: contractAddress as `0x${string}`,
         value: valueInWei,
         data,
-        gas: 500000n, // Explicit gas limit
+        gas: 500000n,
       } as any);
 
       toast.loading('Transaction submitted. Waiting for confirmation...', { id: 'invest' });
 
-      // Wait for transaction confirmation
-      if (publicClient) {
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
-        
-        // Check if transaction was successful
-        if (receipt.status === 'reverted') {
-          toast.error('Transaction reverted. Check sale status, KYC, and contribution limits.', { id: 'invest' });
-          return false;
-        }
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      
+      if (receipt.status === 'reverted') {
+        toast.error('Transaction reverted. Please contact support.', { id: 'invest' });
+        return false;
       }
 
       toast.success(`Investment successful! Tokens will be claimable after sale ends.`, { id: 'invest' });
       return true;
     } catch (error: any) {
-      console.error('Investment error:', error);
+      console.error('[Invest] Transaction error:', error);
       
       if (error.message?.includes('User rejected')) {
         toast.error('Transaction rejected by user', { id: 'invest' });
       } else if (error.message?.includes('insufficient funds')) {
         toast.error('Insufficient funds in wallet', { id: 'invest' });
-      } else if (error.message?.includes('Not KYC approved')) {
-        toast.error('KYC approval required to invest', { id: 'invest' });
-      } else if (error.message?.includes('Insufficient tokens in sale')) {
-        toast.error('Sale contract has insufficient tokens. Contact project team.', { id: 'invest' });
-      } else if (error.message?.includes('Sale not active')) {
-        toast.error('Sale is not currently active', { id: 'invest' });
-      } else if (error.message?.includes('Exceeds maximum')) {
-        toast.error('Investment exceeds maximum allowed per wallet', { id: 'invest' });
       } else {
-        toast.error(error.shortMessage || error.message || 'Transaction failed. Please try again.', { id: 'invest' });
+        toast.error(error.shortMessage || error.message || 'Transaction failed', { id: 'invest' });
       }
       
       return false;
