@@ -65,7 +65,7 @@ export const KYCApprovals = () => {
       const kyc = kycSubmissions.find(k => k.id === id);
       if (!kyc) return;
 
-      // Step 1: Update database (off-chain)
+      // Step 1: Update database
       const { error: kycError } = await supabase
         .from('kyc_submissions')
         .update({ 
@@ -103,9 +103,11 @@ export const KYCApprovals = () => {
 
       if (eligibilityError) throw eligibilityError;
 
-      toast.success(`Database KYC approved for ${kyc.wallet_address.slice(0, 6)}...${kyc.wallet_address.slice(-4)}`);
+      toast.success(`Step 1/2: Database approved`);
 
-      // Step 2: Get KYC Registry address from project
+      // Step 2: Get KYC Registry and approve on blockchain with retries
+      toast.loading('Step 2/2: Approving on blockchain...', { id: 'blockchain' });
+      
       const { data: projects } = await supabase
         .from('projects')
         .select('kyc_registry_address')
@@ -114,27 +116,48 @@ export const KYCApprovals = () => {
         .single();
 
       if (!projects?.kyc_registry_address) {
-        toast.warning('No KYC Registry found. Database approval only.');
+        toast.error('No KYC Registry configured. Contact developer.', { id: 'blockchain' });
         await refetch();
         return;
       }
 
-      // Step 3: Approve on-chain
-      toast.loading('Approving on-chain...', { id: 'onchain-approval' });
+      // Retry blockchain approval up to 3 times
+      let success = false;
+      let lastError = '';
       
-      const { data: onchainResult, error: onchainError } = await supabase.functions.invoke('approve-kyc-onchain', {
-        body: {
-          walletAddress: kyc.wallet_address,
-          kycRegistryAddress: projects.kyc_registry_address
-        }
-      });
+      for (let attempt = 1; attempt <= 3 && !success; attempt++) {
+        try {
+          if (attempt > 1) {
+            toast.loading(`Retry ${attempt}/3: Approving on blockchain...`, { id: 'blockchain' });
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
 
-      if (onchainError || !onchainResult?.success) {
-        toast.error('On-chain approval failed: ' + (onchainResult?.error || onchainError?.message), { id: 'onchain-approval' });
-        toast.warning('User is approved in database but NOT on-chain. Use Quick KYC page.', { duration: 7000 });
-      } else {
-        toast.success(`On-chain approval successful! Tx: ${onchainResult.txHash.slice(0, 10)}...`, { id: 'onchain-approval' });
-        toast.success(`✅ KYC fully approved (database + on-chain)`, { duration: 5000 });
+          const { data: result, error } = await supabase.functions.invoke('approve-kyc-onchain', {
+            body: {
+              walletAddress: kyc.wallet_address,
+              kycRegistryAddress: projects.kyc_registry_address
+            }
+          });
+
+          if (error || !result?.success) {
+            lastError = result?.error || error?.message || 'Unknown error';
+            throw new Error(lastError);
+          }
+          
+          success = true;
+          toast.success(`✅ APPROVED! User can invest now. Tx: ${result.txHash?.slice(0, 10)}...`, { 
+            id: 'blockchain',
+            duration: 8000 
+          });
+        } catch (error: any) {
+          console.error(`Blockchain approval attempt ${attempt} failed:`, error);
+          if (attempt === 3) {
+            toast.error(
+              `Blockchain approval failed after 3 attempts: ${lastError}. User approved in database only.`, 
+              { id: 'blockchain', duration: 10000 }
+            );
+          }
+        }
       }
 
       await refetch();
