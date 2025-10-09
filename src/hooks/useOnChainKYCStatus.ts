@@ -5,7 +5,7 @@ import { baseSepolia } from 'wagmi/chains';
 const KYC_REGISTRY_ABI = [
   {
     inputs: [{ internalType: 'address', name: '', type: 'address' }],
-    name: 'kycStatus',
+    name: 'isKYCApproved',
     outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
     stateMutability: 'view',
     type: 'function',
@@ -32,7 +32,7 @@ export const useOnChainKYCStatus = (walletAddress: string | undefined, kycRegist
         const result = await publicClient.readContract({
           address: kycRegistryAddress as `0x${string}`,
           abi: KYC_REGISTRY_ABI,
-          functionName: 'kycStatus',
+          functionName: 'isKYCApproved',
           args: [walletAddress as `0x${string}`],
         } as any);
 
