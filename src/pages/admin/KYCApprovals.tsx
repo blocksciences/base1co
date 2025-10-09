@@ -145,6 +145,9 @@ export const KYCApprovals = () => {
       let success = false;
       let lastError = '';
       
+      console.log('🚀 Starting blockchain approval for:', kyc.wallet_address);
+      console.log('🎯 KYC Registry Address:', projects.kyc_registry_address);
+      
       for (let attempt = 1; attempt <= 3 && !success; attempt++) {
         try {
           if (attempt > 1) {
@@ -152,6 +155,8 @@ export const KYCApprovals = () => {
             await new Promise(resolve => setTimeout(resolve, 2000));
           }
 
+          console.log(`📡 Attempt ${attempt}: Calling approve-kyc-onchain edge function...`);
+          
           const { data: result, error } = await supabase.functions.invoke('approve-kyc-onchain', {
             body: {
               walletAddress: kyc.wallet_address,
@@ -159,18 +164,33 @@ export const KYCApprovals = () => {
             }
           });
 
-          if (error || !result?.success) {
-            lastError = result?.error || error?.message || 'Unknown error';
+          console.log('📥 Edge function response:', { result, error });
+
+          if (error) {
+            lastError = error.message || 'Edge function error';
+            console.error('❌ Edge function error:', error);
+            throw new Error(lastError);
+          }
+
+          if (!result?.success) {
+            lastError = result?.error || 'Unknown error';
+            console.error('❌ Function returned failure:', result);
             throw new Error(lastError);
           }
           
           success = true;
+          console.log('✅ Blockchain approval successful!', result);
           toast.success(`✅ APPROVED! User can invest now. Tx: ${result.txHash?.slice(0, 10)}...`, { 
             id: 'blockchain',
             duration: 8000 
           });
         } catch (error: any) {
-          console.error(`Blockchain approval attempt ${attempt} failed:`, error);
+          console.error(`❌ Blockchain approval attempt ${attempt} failed:`, error);
+          console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+          });
           if (attempt === 3) {
             toast.error(
               `Blockchain approval failed after 3 attempts: ${lastError}. User approved in database only.`, 
