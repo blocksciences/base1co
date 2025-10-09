@@ -303,10 +303,40 @@ export const KYCApprovals = () => {
   const rejectedKYC = kycSubmissions.filter(kyc => kyc.status === 'rejected');
 
   const KYCCardWithStatus = ({ kyc, showActions }: { kyc: KYCSubmission; showActions: boolean }) => {
-    const { isApproved, isLoading } = useOnChainKYCStatus(kyc.wallet_address, kycRegistryAddress || undefined);
+    const { isApproved, isLoading, error } = useOnChainKYCStatus(kyc.wallet_address, kycRegistryAddress || undefined);
     
     return (
       <Card key={kyc.id} className="glass p-6">
+        {/* PROMINENT ON-CHAIN STATUS LINE AT TOP */}
+        <div className="mb-4 p-3 rounded-lg border-2 font-semibold text-sm flex items-center justify-between" 
+          style={{
+            backgroundColor: isLoading ? '#fef3c7' : isApproved ? '#d1fae5' : '#fee2e2',
+            borderColor: isLoading ? '#f59e0b' : isApproved ? '#10b981' : '#ef4444',
+            color: isLoading ? '#92400e' : isApproved ? '#065f46' : '#991b1b'
+          }}>
+          <div className="flex items-center gap-2">
+            {isLoading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>🔄 CHECKING ON-CHAIN STATUS...</span>
+              </>
+            ) : isApproved ? (
+              <>
+                <ShieldCheck className="h-5 w-5" />
+                <span>✅ ON-CHAIN STATUS: APPROVED - USER CAN INVEST</span>
+              </>
+            ) : (
+              <>
+                <ShieldX className="h-5 w-5" />
+                <span>❌ ON-CHAIN STATUS: NOT APPROVED - USER CANNOT INVEST</span>
+              </>
+            )}
+          </div>
+          {error && (
+            <span className="text-xs opacity-75">Error: {error}</span>
+          )}
+        </div>
+
         <div className="flex items-start justify-between mb-4">
           <div className="space-y-2">
             <div className="flex items-center gap-3 flex-wrap">
@@ -325,33 +355,8 @@ export const KYCApprovals = () => {
                 kyc.status === 'rejected' ? 'destructive' :
                 'secondary'
               }>
-                {kyc.status}
+                DB: {kyc.status}
               </Badge>
-              
-              {/* On-Chain Status Badge */}
-              {isLoading ? (
-                <Badge variant="outline" className="gap-1">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Checking...
-                </Badge>
-              ) : isApproved !== null && (
-                <Badge 
-                  variant={isApproved ? "default" : "destructive"}
-                  className={isApproved ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}
-                >
-                  {isApproved ? (
-                    <>
-                      <ShieldCheck className="h-3 w-3 mr-1" />
-                      On-Chain ✓
-                    </>
-                  ) : (
-                    <>
-                      <ShieldX className="h-3 w-3 mr-1" />
-                      On-Chain ✗
-                    </>
-                  )}
-                </Badge>
-              )}
             </div>
             <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
               <span>Submitted: {new Date(kyc.submitted_at).toLocaleString()}</span>
