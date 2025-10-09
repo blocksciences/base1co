@@ -421,7 +421,8 @@ export const useICOContract = (contractAddress: string) => {
 
   const checkSaleStatus = async () => {
     if (!publicClient || !contractAddress) {
-      return { hasStarted: false, hasEnded: false, canInvest: false };
+      console.log('No blockchain client or contract address available');
+      return { hasStarted: false, hasEnded: false, canInvest: false, startTime: 0, endTime: 0 };
     }
 
     try {
@@ -443,6 +444,15 @@ export const useICOContract = (contractAddress: string) => {
       const hasEnded = now > Number(endTime);
       const canInvest = hasStarted && !hasEnded;
 
+      console.log('Sale status from blockchain:', {
+        now,
+        startTime: Number(startTime),
+        endTime: Number(endTime),
+        hasStarted,
+        hasEnded,
+        canInvest
+      });
+
       return { 
         hasStarted, 
         hasEnded, 
@@ -451,8 +461,8 @@ export const useICOContract = (contractAddress: string) => {
         endTime: Number(endTime)
       };
     } catch (error) {
-      console.error('Error checking sale status:', error);
-      return { hasStarted: false, hasEnded: false, canInvest: false };
+      console.error('Error checking sale status from blockchain:', error);
+      return { hasStarted: false, hasEnded: false, canInvest: false, startTime: 0, endTime: 0 };
     }
   };
 

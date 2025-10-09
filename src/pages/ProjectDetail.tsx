@@ -32,7 +32,13 @@ export const ProjectDetail = () => {
   const { isConnected, address } = useAccount();
   const [isInvesting, setIsInvesting] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
-  const [saleStatus, setSaleStatus] = useState({ hasStarted: false, hasEnded: false, canInvest: false });
+  const [saleStatus, setSaleStatus] = useState({ 
+    hasStarted: false, 
+    hasEnded: false, 
+    canInvest: false,
+    startTime: 0,
+    endTime: 0
+  });
   const [showKYCModal, setShowKYCModal] = useState(false);
   const [showInvestModal, setShowInvestModal] = useState(false);
   
@@ -43,20 +49,53 @@ export const ProjectDetail = () => {
   // Check sale status when wallet connects or contract changes
   useEffect(() => {
     const checkStatus = async () => {
-      if (!isConnected || !address || !project?.contractAddress) {
+      if (!project) {
         return;
       }
 
       try {
-        const status = await checkSaleStatus();
-        setSaleStatus(status);
+        // If contract is deployed, check blockchain status
+        if (isConnected && address && project.contractAddress) {
+          const status = await checkSaleStatus();
+          // Only use blockchain status if it returned valid data
+          if (status.startTime > 0 && status.endTime > 0) {
+            setSaleStatus(status);
+            return;
+          }
+        }
+
+        // Fallback: Check database dates
+        const now = new Date();
+        const startDate = project.startDate ? new Date(project.startDate) : null;
+        const endDate = project.endDate ? new Date(project.endDate) : null;
+        
+        const hasStarted = startDate ? now >= startDate : false;
+        const hasEnded = endDate ? now > endDate : false;
+        const canInvest = hasStarted && !hasEnded;
+
+        console.log('Sale status from database:', {
+          now: now.toISOString(),
+          startDate: startDate?.toISOString(),
+          endDate: endDate?.toISOString(),
+          hasStarted,
+          hasEnded,
+          canInvest
+        });
+
+        setSaleStatus({
+          hasStarted,
+          hasEnded,
+          canInvest,
+          startTime: startDate ? Math.floor(startDate.getTime() / 1000) : 0,
+          endTime: endDate ? Math.floor(endDate.getTime() / 1000) : 0
+        });
       } catch (error) {
         console.error('Error checking sale status:', error);
       }
     };
 
     checkStatus();
-  }, [isConnected, address, project?.contractAddress]);
+  }, [isConnected, address, project, checkSaleStatus]);
   
   const handleInvest = async (amount: string): Promise<boolean> => {
     setIsInvesting(true);
