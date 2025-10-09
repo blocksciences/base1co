@@ -212,7 +212,11 @@ export const useICOContract = (contractAddress: string) => {
         // Parse revert reason
         const reason = simError.message || simError.shortMessage || '';
         if (reason.includes('Not KYC approved')) {
-          toast.error('KYC approval required. Please complete KYC first.', { id: 'invest' });
+          toast.error(
+            'Your wallet is not KYC-approved on the blockchain. ' +
+            'If you completed KYC in the database, contact admin to approve it on-chain.', 
+            { id: 'invest', duration: 8000 }
+          );
         } else if (reason.includes('Insufficient tokens')) {
           toast.error('Sale contract has insufficient tokens. Contact project team.', { id: 'invest' });
         } else if (reason.includes('Below minimum')) {

@@ -463,9 +463,14 @@ export const ProjectDetail = () => {
                           <Shield className="h-5 w-5 text-orange-500 mt-0.5" />
                           <div className="flex-1">
                             <p className="font-semibold text-orange-600">KYC Required</p>
-                            <p className="text-sm text-muted-foreground mb-3">
+                            <p className="text-sm text-muted-foreground mb-2">
                               You must complete KYC verification before investing
                             </p>
+                            {address && (
+                              <p className="text-xs font-mono text-muted-foreground mb-3 bg-background/50 p-2 rounded">
+                                Wallet: {address}
+                              </p>
+                            )}
                             <Button 
                               size="sm" 
                               onClick={() => setShowKYCModal(true)}

@@ -20,20 +20,24 @@ export const useKYCStatus = () => {
       try {
         console.log('[KYC Check] Checking for address:', address);
         
-        // Use text filter with exact match, case insensitive
+        // Use case-insensitive exact match
         const { data: kycData, error } = await supabase
           .from('kyc_submissions')
           .select('status, wallet_address')
-          .filter('wallet_address', 'ilike', address)
-          .filter('status', 'eq', 'approved')
-          .limit(1);
+          .ilike('wallet_address', address)
+          .eq('status', 'approved')
+          .maybeSingle();
 
         if (error) {
-          console.error('[KYC Check] Error:', error);
+          console.error('[KYC Check] Database error:', error);
           setIsKYCApproved(false);
         } else {
-          const approved = kycData && kycData.length > 0;
-          console.log('[KYC Check] Result:', { found: kycData?.length || 0, approved });
+          const approved = !!kycData;
+          console.log('[KYC Check] Database result:', { 
+            found: approved, 
+            data: kycData,
+            searchAddress: address 
+          });
           setIsKYCApproved(approved);
         }
       } catch (error) {
