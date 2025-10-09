@@ -18,27 +18,29 @@ export const useKYCStatus = () => {
 
       setIsLoading(true);
       try {
-        console.log('[KYC Check] Checking for address:', address);
+        const normalizedAddress = address.toLowerCase();
+        console.log('[KYC Check] Searching for:', normalizedAddress);
         
-        // Use case-insensitive exact match
+        // Query with exact lowercase match
         const { data: kycData, error } = await supabase
           .from('kyc_submissions')
-          .select('status, wallet_address')
-          .ilike('wallet_address', address)
+          .select('id, status, wallet_address, reviewed_at')
           .eq('status', 'approved')
-          .maybeSingle();
+          .limit(100); // Get all approved to check manually
 
         if (error) {
           console.error('[KYC Check] Database error:', error);
           setIsKYCApproved(false);
         } else {
-          const approved = !!kycData;
-          console.log('[KYC Check] Database result:', { 
-            found: approved, 
-            data: kycData,
-            searchAddress: address 
-          });
-          setIsKYCApproved(approved);
+          console.log('[KYC Check] Found approved KYCs:', kycData?.length || 0);
+          
+          // Manual case-insensitive comparison
+          const matchingKYC = kycData?.find(kyc => 
+            kyc.wallet_address.toLowerCase() === normalizedAddress
+          );
+          
+          console.log('[KYC Check] Match found:', !!matchingKYC, matchingKYC);
+          setIsKYCApproved(!!matchingKYC);
         }
       } catch (error) {
         console.error('[KYC Check] Exception:', error);
